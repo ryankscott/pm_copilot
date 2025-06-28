@@ -77,7 +77,7 @@ function App() {
         <div className="p-4 border-b border-sidebar-border">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold text-sidebar-foreground">
-              ChatPRD
+              PMCoPilot
             </h1>
             <div className="flex items-center gap-2">
               <Button
@@ -115,7 +115,7 @@ function App() {
           <div className="flex-1 flex items-center justify-center bg-muted">
             <div className="text-center">
               <h2 className="text-2xl font-semibold text-foreground mb-2">
-                Welcome to ChatPRD
+                Welcome to PMCoPilot
               </h2>
               <p className="text-muted-foreground mb-6">
                 Create and manage your Product Requirements Documents with AI

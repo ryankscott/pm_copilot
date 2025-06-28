@@ -10,7 +10,7 @@ interface APIKeys {
 // Helper functions for localStorage
 export const getStoredAPIKeys = (): APIKeys => {
   try {
-    const stored = localStorage.getItem("chatprd-api-keys");
+    const stored = localStorage.getItem("pmcopilot-api-keys");
     return stored
       ? JSON.parse(stored)
       : { openai: "", claude: "", gemini: "", ollama: "" };
@@ -20,7 +20,7 @@ export const getStoredAPIKeys = (): APIKeys => {
 };
 
 export const storeAPIKeys = (apiKeys: APIKeys) => {
-  localStorage.setItem("chatprd-api-keys", JSON.stringify(apiKeys));
+  localStorage.setItem("pmcopilot-api-keys", JSON.stringify(apiKeys));
 };
 
 export const getStoredAPIKey = (provider: AIProvider): string => {
@@ -29,5 +29,5 @@ export const getStoredAPIKey = (provider: AIProvider): string => {
 };
 
 export const clearStoredAPIKeys = () => {
-  localStorage.removeItem("chatprd-api-keys");
+  localStorage.removeItem("pmcopilot-api-keys");
 };

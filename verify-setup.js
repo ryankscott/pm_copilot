@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 
-console.log("🔍 ChatPRD Setup Verification\n");
+console.log("🔍 PMCoPilot Setup Verification\n");
 
 // Check if required files exist
 const requiredFiles = [

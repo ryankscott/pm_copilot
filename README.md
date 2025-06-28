@@ -1,4 +1,4 @@
-# ChatPRD - AI-Powered Product Requirements Document Manager
+# PMCoPilot - AI-Powered Product Requirements Document Manager
 
 A modern React application for creating, editing, and improving Product Requirements Documents (PRDs) with AI assistance. Built with React, TypeScript, Vite, Tailwind CSS, and the Vercel AI SDK.
 

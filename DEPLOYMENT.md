@@ -1,4 +1,4 @@
-# 🚀 ChatPRD Deployment Guide
+# 🚀 PMCoPilot Deployment Guide
 
 ## Quick Deployment to Vercel (Recommended)
 
@@ -13,8 +13,8 @@
    ```bash
    git init
    git add .
-   git commit -m "Initial ChatPRD setup"
-   git remote add origin https://github.com/yourusername/chatprd.git
+   git commit -m "Initial PMCoPilot setup"
+   git remote add origin https://github.com/yourusername/pmcopilot.git
    git push -u origin main
    ```
 
@@ -100,4 +100,4 @@
 
 ---
 
-**🎉 Your ChatPRD application is ready to use!**
+**🎉 Your PMCoPilot application is ready to use!**
