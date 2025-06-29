@@ -10,7 +10,7 @@ function App({ children }: AppProps) {
     <SidebarProvider>
       <AppSidebar />
       <SidebarTrigger />
-      <div>{children}</div>
+      {children}
     </SidebarProvider>
   );
 }

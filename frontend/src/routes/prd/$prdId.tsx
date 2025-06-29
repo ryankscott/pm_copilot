@@ -21,12 +21,10 @@ function RouteComponent() {
   console.log("RouteComponent prd:", prd);
   console.log("here");
   return (
-    <>
-      <PRDEditor
-        prd={prd}
-        onSave={() => console.log("Save clicked")}
-        onUpdatePrd={(updatedPrd) => console.log("Updated PRD:", updatedPrd)}
-      />
-    </>
+    <PRDEditor
+      prd={prd}
+      onSave={() => console.log("Save clicked")}
+      onUpdatePrd={(updatedPrd) => console.log("Updated PRD:", updatedPrd)}
+    />
   );
 }
