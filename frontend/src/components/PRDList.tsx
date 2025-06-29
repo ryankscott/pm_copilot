@@ -16,6 +16,7 @@ export function PRDList({
   onDeletePrd,
   onCreatePrd,
 }: PRDListProps) {
+  console.log(onSelectPrd, onDeletePrd, onCreatePrd); // Temporary to avoid unused variable error
   const [prds, setPrds] = useState<PRD[]>([]);
   // Load sample PRDs on first visit
   useEffect(() => {
