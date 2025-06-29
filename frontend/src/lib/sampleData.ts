@@ -2,7 +2,7 @@ import type { PRD } from "@/types";
 
 export const samplePRDs: PRD[] = [
   {
-    id: "sample-1",
+    id: "0",
     title: "User Authentication System",
     content: `# User Authentication System PRD
 
@@ -40,7 +40,7 @@ Our application currently lacks a secure user authentication system, preventing 
     updatedAt: new Date("2024-12-15"),
   },
   {
-    id: "sample-2",
+    id: "1",
     title: "Mobile App Dashboard",
     content: `# Mobile App Dashboard PRD
 
