@@ -34,9 +34,9 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
   };
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex w-full">
       {/* Editor */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col w-full">
         <div className="border-b border-border p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -74,16 +74,16 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-hidden">
-          {viewMode === "edit" ? (
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground"
-              placeholder="Start writing your Product Requirements Document..."
-            />
-          ) : (
-            <div className="h-full overflow-auto bg-background">
+        <div className="flex-1 overflow-hidden w-full">
+          <div className="h-full overflow-auto bg-background">
+            {viewMode === "edit" ? (
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground"
+                placeholder="Start writing your Product Requirements Document..."
+              />
+            ) : (
               <div className="p-4 prose prose-gray dark:prose-invert max-w-none">
                 {content ? (
                   <ReactMarkdown
@@ -98,8 +98,8 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>
