@@ -79,7 +79,7 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground"
+              className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground overflow-auto max-w-none"
               placeholder="Start writing your Product Requirements Document...
 
 Here are some sections you might want to include:
