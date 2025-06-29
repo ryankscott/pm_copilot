@@ -79,34 +79,25 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground overflow-auto max-w-none"
-              placeholder="Start writing your Product Requirements Document...
-
-Here are some sections you might want to include:
-• Problem Statement
-• Target Audience
-• Goals and Objectives
-• User Stories
-• Functional Requirements
-• Non-functional Requirements
-• Success Metrics
-• Timeline and Milestones
-• Dependencies and Assumptions"
+              className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground"
+              placeholder="Start writing your Product Requirements Document..."
             />
           ) : (
-            <div className="h-full overflow-auto p-4 prose prose-gray dark:prose-invert max-w-none bg-background text-foreground">
-              {content ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeHighlight]}
-                >
-                  {content}
-                </ReactMarkdown>
-              ) : (
-                <div className="text-muted-foreground italic">
-                  No content to preview. Switch to Edit mode to start writing.
-                </div>
-              )}
+            <div className="h-full overflow-auto bg-background">
+              <div className="p-4 prose prose-gray dark:prose-invert max-w-none">
+                {content ? (
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeHighlight]}
+                  >
+                    {content}
+                  </ReactMarkdown>
+                ) : (
+                  <div className="text-muted-foreground italic">
+                    No content to preview. Switch to Edit mode to start writing.
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

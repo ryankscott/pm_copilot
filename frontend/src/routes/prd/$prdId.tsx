@@ -19,9 +19,9 @@ export const Route = createFileRoute("/prd/$prdId")({
 function RouteComponent() {
   const prd = Route.useLoaderData();
   console.log("RouteComponent prd:", prd);
+  console.log("here");
   return (
     <>
-      <p> hi</p>
       <PRDEditor
         prd={prd}
         onSave={() => console.log("Save clicked")}

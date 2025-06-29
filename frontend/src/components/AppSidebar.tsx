@@ -8,7 +8,7 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { PRDList } from "./PRDList";
-import { Settings2 } from "lucide-react";
+import { Settings2, Github } from "lucide-react";
 
 // Menu items.
 export function AppSidebar() {
@@ -24,6 +24,12 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenuButton asChild>
+          <a href="https://github.com/ryankscott/pm_copilot/issues" target="_blank" rel="noopener noreferrer">
+            <Github className="w-4 h-4" />
+            <span>GitHub Issues</span>
+          </a>
+        </SidebarMenuButton>
         <SidebarMenuButton asChild>
           <a href={"/settings"}>
             <Settings2 className="w-4 h-4" />
