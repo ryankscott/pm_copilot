@@ -10,19 +10,19 @@ import (
 )
 
 func main() {
-	db, err := internal.InitDB("todos.db")
+	db, err := internal.InitDB("prds.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	todoServer := &internal.TodoServer{
+	prdServer := &internal.PrdServer{
 		DB: db,
 	}
 
 	r := chi.NewRouter()
 
 	// Use the generated chi server handler
-	generated.HandlerFromMux(todoServer, r)
+	generated.HandlerFromMux(prdServer, r)
 
 	log.Println("Listening on :8080")
 	log.Fatal(http.ListenAndServe(":8080", r))

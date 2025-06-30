@@ -1,98 +1,103 @@
 openapi: 3.0.0
 info:
-  title: Todo API
+  title: PRD API
   version: 1.0.0
 paths:
-  /todos:
+  /prds:
     get:
-      summary: Get all todos
+      summary: Get all PRDs
       responses:
         '200':
-          description: A list of todos
+          description: A list of PRDs
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Todo'
+                  $ref: '#/components/schemas/PRD'
     post:
-      summary: Create a new todo
+      summary: Create a new PRD
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Todo'
+              $ref: '#/components/schemas/PRD'
       responses:
         '201':
-          description: The created todo
+          description: The created PRD
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Todo'
-  /todos/{id}:
+                $ref: '#/components/schemas/PRD'
+  /prds/{id}:
     get:
-      summary: Get a todo by ID
+      summary: Get a PRD by ID
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         '200':
-          description: The todo
+          description: The PRD
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Todo'
+                $ref: '#/components/schemas/PRD'
         '404':
-          description: Todo not found
+          description: PRD not found
     put:
-      summary: Update a todo by ID
+      summary: Update a PRD by ID
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Todo'
+              $ref: '#/components/schemas/PRD'
       responses:
         '200':
-          description: The updated todo
+          description: The updated PRD
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Todo'
+                $ref: '#/components/schemas/PRD'
         '404':
-          description: Todo not found
+          description: PRD not found
     delete:
-      summary: Delete a todo by ID
+      summary: Delete a PRD by ID
       parameters:
         - name: id
           in: path
           required: true
           schema:
-            type: integer
+            type: string
       responses:
         '204':
           description: No content
         '404':
-          description: Todo not found
+          description: PRD not found
 components:
   schemas:
-    Todo:
+    PRD:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         title:
           type: string
-        completed:
-          type: boolean
+        content:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

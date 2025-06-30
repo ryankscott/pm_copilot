@@ -12,7 +12,7 @@ func InitDB(filepath string) (*sql.DB, error) {
 		return nil, err
 	}
 
-	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY, title TEXT, completed BOOLEAN)")
+	statement, err := db.Prepare("CREATE TABLE IF NOT EXISTS prds (id TEXT PRIMARY KEY, title TEXT, content TEXT, createdAt DATETIME, updatedAt DATETIME)")
 	if err != nil {
 		return nil, err
 	}
