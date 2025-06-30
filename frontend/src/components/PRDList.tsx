@@ -1,4 +1,4 @@
-import { useMatch } from "@tanstack/react-router";
+import { useMatchRoute } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import type { PRD } from "../types";
@@ -10,8 +10,9 @@ import { Button } from "./ui/button";
 
 export function PRDList() {
   const [prds, setPrds] = useState<PRD[]>([]);
+  const matchRoute = useMatchRoute();
   // Get the current prdId from the route (if on a PRD page)
-  const match = useMatch({ from: "/prd/$prdId" });
+  const match = matchRoute({ from: "/prd/$prdId", strict: false });
   const currentPrdId = match?.params?.prdId;
 
   // Load sample PRDs on first visit
