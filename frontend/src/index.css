@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
-
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans&display=swap");
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -11,13 +11,13 @@
   --card-foreground: oklch(0 0 0);
   --popover: oklch(1.0000 0 0);
   --popover-foreground: oklch(0 0 0);
-  --primary: oklch(55.46% 0.26659 291.788);
+  --primary: oklch(51.384% 0.01633 303.784);
   --primary-foreground: oklch(1.0000 0 0);
   --secondary: oklch(0.9680 0.2110 109.7692);
   --secondary-foreground: oklch(0 0 0);
   --muted: oklch(0.9551 0 0);
   --muted-foreground: oklch(0.3211 0 0);
-  --accent: oklch(0.5635 0.2408 260.8178);
+  --accent: oklch(0% 0 0);
   --accent-foreground: oklch(1.0000 0 0);
   --destructive: oklch(0 0 0);
   --destructive-foreground: oklch(1.0000 0 0);

@@ -23,7 +23,7 @@ export function PRDList() {
   }, [prds.length]);
 
   return (
-    <div className="flex flex-col space-y-2 p-4">
+    <div className="flex flex-col space-y-2 gap-1 p-4">
       <Button
         disabled={true} // TODO: Implement PRD creation
         variant="outline"
@@ -35,7 +35,7 @@ export function PRDList() {
         <Link to={"/prd/$prdId"} key={prd.id} params={{ prdId: prd.id }}>
           <Card
             key={prd.id}
-            className={`min-w-0 flex-1 ${prd.id === currentPrdId ? "bg-primary-100" : "bg-background"}`}
+            className={`my-1 min-w-0 flex-1 ${prd.id === currentPrdId ? "bg-primary-100" : "bg-background"}`}
           >
             <CardHeader>{prd.title}</CardHeader>
             <CardContent>
