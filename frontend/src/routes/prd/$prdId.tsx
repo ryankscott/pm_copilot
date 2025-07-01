@@ -1,30 +1,63 @@
 import { PRDEditor } from "@/components/PRDEditor";
-import { samplePRDs } from "@/lib/sampleData";
+import { usePrd, useUpdatePrd } from "@/hooks/use-prd-queries";
+import type { PRD } from "@/types";
 import { createFileRoute } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 
-const fetchPRD = async (prdId: string) => {
-  console.log("fetchPRD called with prdId:", prdId);
-  return samplePRDs[parseInt(prdId)];
-  /*
-  const res = await fetch(`/api/posts?page=${pageIndex}`)
-  if (!res.ok) throw new Error('Failed to fetch posts')
-  return res.json()
-  */
-};
 export const Route = createFileRoute("/prd/$prdId")({
   component: RouteComponent,
-  loader: ({ params }) => fetchPRD(params.prdId),
 });
 
 function RouteComponent() {
-  const prd = Route.useLoaderData();
-  console.log("RouteComponent prd:", prd);
-  console.log("here");
+  const { prdId } = Route.useParams();
+  const { data: prd, isLoading, error } = usePrd(prdId);
+  const updatePrd = useUpdatePrd();
+
+  const handleUpdatePrd = async (updatedPrd: PRD) => {
+    if (!prd) return;
+
+    try {
+      await updatePrd.mutateAsync({
+        id: prd.id,
+        data: {
+          title: updatedPrd.title,
+          content: updatedPrd.content,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to update PRD:", error);
+    }
+  };
+
+  const handleSave = () => {
+    console.log("Save triggered - changes will be automatically saved");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-500">Error loading PRD: {error.message}</p>
+      </div>
+    );
+  }
+
+  if (!prd) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-muted-foreground">PRD not found</p>
+      </div>
+    );
+  }
+
   return (
-    <PRDEditor
-      prd={prd}
-      onSave={() => console.log("Save clicked")}
-      onUpdatePrd={(updatedPrd) => console.log("Updated PRD:", updatedPrd)}
-    />
+    <PRDEditor prd={prd} onSave={handleSave} onUpdatePrd={handleUpdatePrd} />
   );
 }

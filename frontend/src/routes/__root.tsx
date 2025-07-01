@@ -2,11 +2,15 @@ import App from "@/App";
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
-export const Route = createRootRoute({
-  component: () => (
+function RootComponent() {
+  return (
     <App>
       <Outlet />
       <TanStackRouterDevtools />
     </App>
-  ),
+  );
+}
+
+export const Route = createRootRoute({
+  component: RootComponent,
 });

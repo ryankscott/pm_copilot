@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as PrdsIndexRouteImport } from './routes/prds/index'
 import { Route as PrdIndexRouteImport } from './routes/prd/index'
 import { Route as PrdPrdIdRouteImport } from './routes/prd/$prdId'
 
@@ -23,11 +22,6 @@ const IndexRoute = IndexRouteImport.update({
 const SettingsIndexRoute = SettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrdsIndexRoute = PrdsIndexRouteImport.update({
-  id: '/prds/',
-  path: '/prds/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrdIndexRoute = PrdIndexRouteImport.update({
@@ -45,14 +39,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/prd/$prdId': typeof PrdPrdIdRoute
   '/prd': typeof PrdIndexRoute
-  '/prds': typeof PrdsIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/prd/$prdId': typeof PrdPrdIdRoute
   '/prd': typeof PrdIndexRoute
-  '/prds': typeof PrdsIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -60,22 +52,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/prd/$prdId': typeof PrdPrdIdRoute
   '/prd/': typeof PrdIndexRoute
-  '/prds/': typeof PrdsIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/prd/$prdId' | '/prd' | '/prds' | '/settings'
+  fullPaths: '/' | '/prd/$prdId' | '/prd' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/prd/$prdId' | '/prd' | '/prds' | '/settings'
-  id: '__root__' | '/' | '/prd/$prdId' | '/prd/' | '/prds/' | '/settings/'
+  to: '/' | '/prd/$prdId' | '/prd' | '/settings'
+  id: '__root__' | '/' | '/prd/$prdId' | '/prd/' | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PrdPrdIdRoute: typeof PrdPrdIdRoute
   PrdIndexRoute: typeof PrdIndexRoute
-  PrdsIndexRoute: typeof PrdsIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
@@ -93,13 +83,6 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/prds/': {
-      id: '/prds/'
-      path: '/prds'
-      fullPath: '/prds'
-      preLoaderRoute: typeof PrdsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/prd/': {
@@ -123,7 +106,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PrdPrdIdRoute: PrdPrdIdRoute,
   PrdIndexRoute: PrdIndexRoute,
-  PrdsIndexRoute: PrdsIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }
 export const routeTree = rootRouteImport

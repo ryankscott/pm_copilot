@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
-import { Save, FileText, Eye, Edit } from "lucide-react";
+import { Save, FileText, Eye, Edit, Loader2, CheckCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -8,7 +8,7 @@ import type { PRD } from "../types";
 
 interface PRDEditorProps {
   prd: PRD;
-  onUpdatePrd: (prd: PRD) => void;
+  onUpdatePrd: (prd: PRD) => Promise<void>;
   onSave: () => void;
 }
 
@@ -16,21 +16,81 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
   const [title, setTitle] = useState(prd.title);
   const [content, setContent] = useState(prd.content);
   const [viewMode, setViewMode] = useState<"edit" | "preview">("preview");
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when a new PRD is selected
   useEffect(() => {
     setTitle(prd.title);
     setContent(prd.content);
+    setHasUnsavedChanges(false);
+    setLastSaved(null);
   }, [prd.id, prd.title, prd.content]);
 
-  const handleSave = () => {
-    const updatedPrd = {
-      ...prd,
-      title: title.trim() || "Untitled PRD",
-      content,
-    };
-    onUpdatePrd(updatedPrd);
-    onSave();
+  // Auto-save functionality with debouncing
+  const debouncedSave = useCallback(
+    async (updatedPrd: PRD) => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      debounceTimeoutRef.current = setTimeout(async () => {
+        setIsSaving(true);
+        try {
+          await onUpdatePrd(updatedPrd);
+          setLastSaved(new Date());
+          setHasUnsavedChanges(false);
+        } catch (error) {
+          console.error("Auto-save failed:", error);
+        } finally {
+          setIsSaving(false);
+        }
+      }, 1000); // 1 second delay
+    },
+    [onUpdatePrd]
+  );
+
+  // Trigger auto-save when content changes
+  useEffect(() => {
+    if (hasUnsavedChanges) {
+      const updatedPrd = {
+        ...prd,
+        title: title.trim() || "Untitled PRD",
+        content,
+      };
+      debouncedSave(updatedPrd);
+    }
+  }, [title, content, hasUnsavedChanges, prd, debouncedSave]);
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const updatedPrd = {
+        ...prd,
+        title: title.trim() || "Untitled PRD",
+        content,
+      };
+      await onUpdatePrd(updatedPrd);
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      onSave();
+    } catch (error) {
+      console.error("Manual save failed:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleTitleChange = (newTitle: string) => {
+    setTitle(newTitle);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+    setHasUnsavedChanges(true);
   };
 
   return (
@@ -44,12 +104,29 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={(e) => handleTitleChange(e.target.value)}
                 className="text-xl font-semibold bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
                 placeholder="Enter PRD title..."
               />
             </div>
             <div className="flex items-center space-x-2">
+              {/* Save Status */}
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : hasUnsavedChanges ? (
+                  <span>Unsaved changes</span>
+                ) : lastSaved ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Saved at {lastSaved.toLocaleTimeString()}</span>
+                  </>
+                ) : null}
+              </div>
+
               <Button
                 variant={viewMode === "edit" ? "default" : "outline"}
                 onClick={() => setViewMode("edit")}
@@ -66,8 +143,16 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
                 <Eye className="w-4 h-4" />
                 Preview
               </Button>
-              <Button onClick={handleSave}>
-                <Save className="w-4 h-4" />
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || !hasUnsavedChanges}
+                variant={hasUnsavedChanges ? "default" : "outline"}
+              >
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
                 Save
               </Button>
             </div>
@@ -79,7 +164,7 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
             {viewMode === "edit" ? (
               <textarea
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => handleContentChange(e.target.value)}
                 className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground"
                 placeholder="Start writing your Product Requirements Document..."
               />

@@ -36,8 +36,8 @@ Our application currently lacks a secure user authentication system, preventing 
 - User registration rate: >60% of visitors
 - Login success rate: >95%
 - Password reset completion: >80%`,
-    createdAt: new Date("2024-12-01"),
-    updatedAt: new Date("2024-12-15"),
+    createdAt: "2024-12-01T00:00:00.000Z",
+    updatedAt: "2024-12-15T00:00:00.000Z",
   },
   {
     id: "1",
@@ -62,7 +62,7 @@ Users need a centralized view of their key metrics and recent activity when usin
 - Real-time data updates
 - Quick action buttons
 - Offline mode support`,
-    createdAt: new Date("2024-11-20"),
-    updatedAt: new Date("2024-12-10"),
+    createdAt: "2024-11-20T00:00:00.000Z",
+    updatedAt: "2024-12-10T00:00:00.000Z",
   },
 ];
