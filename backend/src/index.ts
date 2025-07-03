@@ -5,6 +5,7 @@ import { initDB } from "./database";
 import {
   createPrd,
   deletePrd,
+  generatePrdContent,
   getPrdById,
   getPrds,
   updatePrd,
@@ -16,11 +17,7 @@ const port = 8080;
 // Enable CORS for all routes
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-    ], // Support multiple Vite dev server ports
+    origin: ["http://localhost:5173"], // Support multiple Vite dev server ports
     credentials: true,
   })
 );
@@ -34,6 +31,7 @@ initDB("prds.db")
     app.get("/prds/:id", getPrdById(db));
     app.put("/prds/:id", updatePrd(db));
     app.delete("/prds/:id", deletePrd(db));
+    app.post("/prds/:id/generate", generatePrdContent(db));
 
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);

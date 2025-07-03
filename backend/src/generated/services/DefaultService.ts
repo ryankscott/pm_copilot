@@ -2,6 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { GenerateContentRequest } from '../models/GenerateContentRequest';
+import type { GenerateContentResponse } from '../models/GenerateContentResponse';
 import type { PRD } from '../models/PRD';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -95,6 +97,33 @@ export class DefaultService {
             },
             errors: {
                 404: `PRD not found`,
+            },
+        });
+    }
+    /**
+     * Generate AI content for a PRD
+     * Generate content for a specific section of a PRD or enhance existing content using AI
+     * @param id The ID of the PRD to generate content for
+     * @param requestBody
+     * @returns GenerateContentResponse Successfully generated content
+     * @throws ApiError
+     */
+    public static postPrdsGenerate(
+        id: string,
+        requestBody: GenerateContentRequest,
+    ): CancelablePromise<GenerateContentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/prds/{id}/generate',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid input parameters`,
+                404: `PRD not found`,
+                500: `Internal server error - AI generation failed`,
             },
         });
     }

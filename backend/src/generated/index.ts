@@ -7,6 +7,9 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { Error } from './models/Error';
+export { GenerateContentRequest } from './models/GenerateContentRequest';
+export type { GenerateContentResponse } from './models/GenerateContentResponse';
 export type { PRD } from './models/PRD';
 
 export { DefaultService } from './services/DefaultService';

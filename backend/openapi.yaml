@@ -7,14 +7,14 @@ paths:
     get:
       summary: Get all PRDs
       responses:
-        '200':
+        "200":
           description: A list of PRDs
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/PRD'
+                  $ref: "#/components/schemas/PRD"
     post:
       summary: Create a new PRD
       requestBody:
@@ -22,14 +22,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PRD'
+              $ref: "#/components/schemas/PRD"
       responses:
-        '201':
+        "201":
           description: The created PRD
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PRD'
+                $ref: "#/components/schemas/PRD"
   /prds/{id}:
     get:
       summary: Get a PRD by ID
@@ -40,13 +40,13 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: The PRD
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PRD'
-        '404':
+                $ref: "#/components/schemas/PRD"
+        "404":
           description: PRD not found
     put:
       summary: Update a PRD by ID
@@ -61,15 +61,15 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PRD'
+              $ref: "#/components/schemas/PRD"
       responses:
-        '200':
+        "200":
           description: The updated PRD
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PRD'
-        '404':
+                $ref: "#/components/schemas/PRD"
+        "404":
           description: PRD not found
     delete:
       summary: Delete a PRD by ID
@@ -80,10 +80,52 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        "204":
           description: No content
-        '404':
+        "404":
           description: PRD not found
+  /prds/{id}/generate:
+    post:
+      summary: Generate AI content for a PRD
+      description: Generate content for a specific section of a PRD or enhance existing content using AI
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the PRD to generate content for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateContentRequest"
+      responses:
+        "200":
+          description: Successfully generated content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateContentResponse"
+        "400":
+          description: Bad request - invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: PRD not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error - AI generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     PRD:
@@ -101,3 +143,65 @@ components:
         updatedAt:
           type: string
           format: date-time
+    GenerateContentRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: The prompt or instruction for AI content generation
+          example: "Generate a detailed user story for mobile app login feature"
+        context:
+          type: string
+          description: Additional context to help with content generation
+          example: "This is for a B2B SaaS application with enterprise security requirements"
+        tone:
+          type: string
+          enum: ["professional", "casual", "technical", "executive"]
+          default: "professional"
+          description: The tone to use for generated content
+        length:
+          type: string
+          enum: ["brief", "standard", "detailed", "comprehensive"]
+          default: "standard"
+          description: The desired length/detail level of generated content
+        existing_content:
+          type: string
+          description: Existing content to enhance or build upon
+    GenerateContentResponse:
+      type: object
+      properties:
+        generated_content:
+          type: string
+          description: The AI-generated content
+        tokens_used:
+          type: integer
+          description: Number of tokens consumed in the generation
+        model_used:
+          type: string
+          description: The AI model used for generation
+          example: "gpt-4"
+        generation_time:
+          type: number
+          format: float
+          description: Time taken to generate content in seconds
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Additional suggestions for improving the content
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message describing what went wrong
+        code:
+          type: string
+          description: Error code for programmatic handling
+        details:
+          type: object
+          description: Additional error details
