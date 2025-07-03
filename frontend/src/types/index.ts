@@ -6,12 +6,19 @@ export interface PRD {
   updatedAt: string;
 }
 
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  timestamp?: string;
+}
+
 export interface GenerateContentRequest {
   prompt: string;
   context?: string;
   tone?: "professional" | "casual" | "technical" | "executive";
   length?: "brief" | "standard" | "detailed" | "comprehensive";
   existing_content?: string;
+  conversation_history?: ConversationMessage[];
 }
 
 export interface GenerateContentResponse {

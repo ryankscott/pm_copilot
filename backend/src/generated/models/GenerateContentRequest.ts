@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ConversationMessage } from './ConversationMessage';
 export type GenerateContentRequest = {
     /**
      * The prompt or instruction for AI content generation
@@ -22,7 +23,11 @@ export type GenerateContentRequest = {
     /**
      * Existing content to enhance or build upon
      */
-    existing_content?: string;
+    existing_content?: any;
+    /**
+     * Previous conversation messages for interactive sessions
+     */
+    conversation_history?: Array<ConversationMessage>;
 };
 export namespace GenerateContentRequest {
     /**

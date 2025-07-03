@@ -126,6 +126,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /prds/{id}/critique:
+    post:
+      summary: Get AI critique and feedback for a PRD
+      description: Analyze an existing PRD and provide detailed critique, suggestions, and improvement recommendations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the PRD to critique
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CritiqueRequest"
+      responses:
+        "200":
+          description: Successfully generated critique
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CritiqueResponse"
+        "400":
+          description: Bad request - invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: PRD not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error - AI critique failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     PRD:
@@ -167,8 +209,62 @@ components:
           default: "standard"
           description: The desired length/detail level of generated content
         existing_content:
-          type: string
           description: Existing content to enhance or build upon
+        conversation_history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationMessage"
+          description: Previous conversation messages for interactive sessions
+    CritiqueRequest:
+      type: object
+      properties:
+        focus_areas:
+          type: array
+          items:
+            type: string
+            enum:
+              [
+                "completeness",
+                "clarity",
+                "structure",
+                "feasibility",
+                "requirements",
+                "user_experience",
+                "technical",
+                "business_value",
+              ]
+          description: Specific areas to focus the critique on
+          example: ["completeness", "clarity", "requirements"]
+        depth:
+          type: string
+          enum: ["overview", "detailed", "comprehensive"]
+          default: "detailed"
+          description: How detailed the critique should be
+        include_suggestions:
+          type: boolean
+          default: true
+          description: Whether to include specific improvement suggestions
+        custom_criteria:
+          type: string
+          description: Any custom criteria or specific aspects to evaluate
+          example: "Focus on security requirements and compliance considerations"
+    ConversationMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum: ["user", "assistant"]
+          description: The role of the message sender
+        content:
+          type: string
+          description: The message content
+        timestamp:
+          type: string
+          format: date-time
+          description: When the message was sent
     GenerateContentResponse:
       type: object
       properties:
@@ -191,6 +287,76 @@ components:
           items:
             type: string
           description: Additional suggestions for improving the content
+    CritiqueResponse:
+      type: object
+      properties:
+        overall_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 10
+          description: Overall quality score for the PRD (0-10)
+        strengths:
+          type: array
+          items:
+            type: string
+          description: Areas where the PRD excels
+        weaknesses:
+          type: array
+          items:
+            type: string
+          description: Areas that need improvement
+        missing_sections:
+          type: array
+          items:
+            type: string
+          description: Important sections that are missing from the PRD
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CritiqueSuggestion"
+          description: Specific improvement suggestions
+        detailed_feedback:
+          type: object
+          additionalProperties:
+            type: string
+          description: Section-by-section detailed feedback
+        action_items:
+          type: array
+          items:
+            type: string
+          description: Prioritized list of actions to improve the PRD
+        critique_summary:
+          type: string
+          description: Executive summary of the critique
+    CritiqueSuggestion:
+      type: object
+      properties:
+        category:
+          type: string
+          enum:
+            [
+              "structure",
+              "content",
+              "clarity",
+              "requirements",
+              "technical",
+              "business",
+            ]
+          description: Category of the suggestion
+        priority:
+          type: string
+          enum: ["high", "medium", "low"]
+          description: Priority level of the suggestion
+        title:
+          type: string
+          description: Brief title of the suggestion
+        description:
+          type: string
+          description: Detailed description of the suggestion
+        example:
+          type: string
+          description: Example of how to implement the suggestion
     Error:
       type: object
       required:

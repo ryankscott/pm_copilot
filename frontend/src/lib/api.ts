@@ -2,6 +2,7 @@ import type {
   PRD,
   GenerateContentRequest,
   GenerateContentResponse,
+  ConversationMessage,
 } from "@/types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -84,5 +85,36 @@ export const prdApi = {
     fetchApi<GenerateContentResponse>(`/prds/${id}/generate`, {
       method: "POST",
       body: JSON.stringify(request),
+    }),
+};
+
+// Interactive session API calls
+export const sessionApi = {
+  // Get session for a PRD
+  get: (
+    prdId: string
+  ): Promise<{
+    id: string;
+    prd_id: string;
+    conversation_history: ConversationMessage[];
+    settings: Record<string, unknown>;
+    created_at: string;
+    updated_at: string;
+  } | null> =>
+    fetchApi(`/prds/${prdId}/session`, {
+      method: "GET",
+    }),
+
+  // Save session for a PRD
+  save: (
+    prdId: string,
+    data: {
+      conversation_history: ConversationMessage[];
+      settings: Record<string, unknown>;
+    }
+  ): Promise<{ success: boolean; id?: string }> =>
+    fetchApi(`/prds/${prdId}/session`, {
+      method: "POST",
+      body: JSON.stringify(data),
     }),
 };

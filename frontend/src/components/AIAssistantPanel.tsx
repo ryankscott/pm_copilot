@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
-import { Card, CardContent } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
-import { Bot, Wand2, MessageSquare, Loader2 } from "lucide-react";
-import type { PRD, GenerateContentRequest } from "@/types";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Bot, Wand2, MessageSquare, Loader2, Send, Plus } from "lucide-react";
+import type { PRD, GenerateContentRequest, ConversationMessage } from "@/types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import { prdApi } from "@/lib/api";
+import { prdApi, sessionApi } from "@/lib/api";
+import { Textarea } from "./ui/textarea";
 
 interface AIAssistantPanelProps {
   prd: PRD;
@@ -19,63 +27,222 @@ export function AIAssistantPanel({
   prd,
   onApplyContent,
 }: AIAssistantPanelProps) {
-  const [activeTab, setActiveTab] = useState<"create" | "critique">("create");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<"interactive" | "critique">(
+    "interactive"
+  );
 
-  // Form state for PRD generation
-  const [formData, setFormData] = useState<GenerateContentRequest>({
-    prompt: "",
-    context: "",
+  // Interactive PRD Creation state
+  const [interactiveMessages, setInteractiveMessages] = useState<
+    ConversationMessage[]
+  >([]);
+  const [interactiveInput, setInteractiveInput] = useState("");
+  const [isInteractiveLoading, setIsInteractiveLoading] = useState(false);
+  const [interactiveSettings, setInteractiveSettings] = useState<{
+    tone: "professional" | "casual" | "technical" | "executive";
+    length: "brief" | "standard" | "detailed" | "comprehensive";
+  }>({
     tone: "professional",
     length: "standard",
-    existing_content: prd.content,
   });
 
-  // Chat functionality for critique mode - temporarily using a simple approach
-  const [chatMessages, setChatMessages] = useState<
-    Array<{ id: string; role: "user" | "assistant"; content: string }>
-  >([]);
+  // Chat functionality for critique mode
+  const [chatMessages, setChatMessages] = useState<ConversationMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  const handleGenerateContent = async () => {
-    if (!formData.prompt.trim()) return;
+  // Reset interactive session when PRD changes
+  useEffect(() => {
+    setInteractiveMessages([]);
 
-    setIsGenerating(true);
+    // Load existing session for this PRD
+    const loadSession = async () => {
+      try {
+        const session = await sessionApi.get(prd.id);
+        if (session && session.conversation_history.length > 0) {
+          setInteractiveMessages(session.conversation_history);
+          if (session.settings) {
+            setInteractiveSettings(
+              session.settings as typeof interactiveSettings
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load session:", error);
+      }
+    };
+
+    loadSession();
+  }, [prd.id]);
+
+  // Save session whenever messages change
+  useEffect(() => {
+    if (interactiveMessages.length > 0) {
+      const saveSession = async () => {
+        try {
+          await sessionApi.save(prd.id, {
+            conversation_history: interactiveMessages,
+            settings: interactiveSettings,
+          });
+        } catch (error) {
+          console.error("Failed to save session:", error);
+        }
+      };
+
+      // Debounce session saving
+      const timeout = setTimeout(saveSession, 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [interactiveMessages, interactiveSettings, prd.id]);
+
+  const handleStartInteractiveSession = async () => {
+    if (!interactiveInput.trim()) return;
+
+    const requestId = Math.random().toString(36).substr(2, 9);
+    console.log(`=== Starting initial request ${requestId} ===`);
+
+    const userMessage: ConversationMessage = {
+      role: "user",
+      content: interactiveInput,
+      timestamp: new Date().toISOString(),
+    };
+
+    setInteractiveMessages([userMessage]);
+    setInteractiveInput("");
+    setIsInteractiveLoading(true);
+
     try {
-      const result = await prdApi.generateContent(prd.id, formData);
-      setGeneratedContent(result.generated_content);
+      const request: GenerateContentRequest = {
+        prompt: userMessage.content,
+        tone: interactiveSettings.tone,
+        length: interactiveSettings.length,
+        existing_content: prd.content,
+        conversation_history: [],
+      };
+
+      const result = await prdApi.generateContent(prd.id, request);
+
+      console.log(`=== AI Response Received (Start) for ${requestId} ===`);
+      console.log("Result:", result);
+      console.log("Generated content:", result.generated_content);
+      console.log("Content length:", result.generated_content?.length || 0);
+
+      if (!result.generated_content || result.generated_content.trim() === "") {
+        console.error(
+          `Empty response received from AI (start session) for request ${requestId}`
+        );
+        throw new Error("Empty response received from AI");
+      }
+
+      const assistantMessage: ConversationMessage = {
+        role: "assistant",
+        content: result.generated_content,
+        timestamp: new Date().toISOString(),
+      };
+
+      setInteractiveMessages([userMessage, assistantMessage]);
+      console.log(
+        `=== Successfully completed initial request ${requestId} ===`
+      );
     } catch (error) {
-      console.error("Error generating content:", error);
-      // You could add toast notification here
+      console.error(
+        `Error starting interactive session for request ${requestId}:`,
+        error
+      );
+      const errorMessage: ConversationMessage = {
+        role: "assistant",
+        content:
+          "Sorry, I encountered an error starting our PRD creation session. Please try again.",
+        timestamp: new Date().toISOString(),
+      };
+      setInteractiveMessages([userMessage, errorMessage]);
     } finally {
-      setIsGenerating(false);
+      setIsInteractiveLoading(false);
     }
   };
 
-  const handleApplyGenerated = () => {
-    if (generatedContent) {
-      onApplyContent(generatedContent);
-      setGeneratedContent("");
+  const handleContinueInteractiveSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!interactiveInput.trim() || isInteractiveLoading) return;
+
+    const requestId = Math.random().toString(36).substr(2, 9);
+    console.log(`=== Starting request ${requestId} ===`);
+
+    const userMessage: ConversationMessage = {
+      role: "user",
+      content: interactiveInput,
+      timestamp: new Date().toISOString(),
+    };
+
+    const updatedMessages = [...interactiveMessages, userMessage];
+    setInteractiveMessages(updatedMessages);
+    setInteractiveInput("");
+    setIsInteractiveLoading(true);
+
+    try {
+      const request: GenerateContentRequest = {
+        prompt: userMessage.content,
+        tone: interactiveSettings.tone,
+        length: interactiveSettings.length,
+        existing_content: prd.content,
+        conversation_history: interactiveMessages, // This should be the old messages, not including the current user message
+      };
+
+      const result = await prdApi.generateContent(prd.id, request);
+
+      console.log(`=== AI Response Received for ${requestId} ===`);
+      console.log("Result:", result);
+      console.log("Generated content:", result.generated_content);
+      console.log("Content length:", result.generated_content?.length || 0);
+
+      if (!result.generated_content || result.generated_content.trim() === "") {
+        console.error(
+          `Empty response received from AI for request ${requestId}`
+        );
+        throw new Error("Empty response received from AI");
+      }
+
+      const assistantMessage: ConversationMessage = {
+        role: "assistant",
+        content: result.generated_content,
+        timestamp: new Date().toISOString(),
+      };
+
+      setInteractiveMessages([...updatedMessages, assistantMessage]);
+      console.log(`=== Successfully completed request ${requestId} ===`);
+    } catch (error) {
+      console.error(
+        `Error in interactive session for request ${requestId}:`,
+        error
+      );
+      const errorMessage: ConversationMessage = {
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+        timestamp: new Date().toISOString(),
+      };
+      setInteractiveMessages([...updatedMessages, errorMessage]);
+    } finally {
+      setIsInteractiveLoading(false);
     }
+  };
+
+  const handleApplyInteractiveContent = (content: string) => {
+    onApplyContent(content);
   };
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim() || isChatLoading) return;
 
-    const userMessage = {
-      id: Date.now().toString(),
-      role: "user" as const,
+    const userMessage: ConversationMessage = {
+      role: "user",
       content: chatInput,
+      timestamp: new Date().toISOString(),
     };
     setChatMessages((prev) => [...prev, userMessage]);
     setChatInput("");
     setIsChatLoading(true);
 
     try {
-      // For now, we'll use the same generate endpoint for chat
       const result = await prdApi.generateContent(prd.id, {
         prompt: `As a product management expert, please answer this question about the PRD titled "${prd.title}": ${chatInput}`,
         context: `PRD Content: ${prd.content}`,
@@ -83,24 +250,72 @@ export function AIAssistantPanel({
         length: "standard",
       });
 
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant" as const,
+      const assistantMessage: ConversationMessage = {
+        role: "assistant",
         content: result.generated_content,
+        timestamp: new Date().toISOString(),
       };
       setChatMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error in chat:", error);
-      const errorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant" as const,
+      const errorMessage: ConversationMessage = {
+        role: "assistant",
         content: "Sorry, I encountered an error. Please try again.",
+        timestamp: new Date().toISOString(),
       };
       setChatMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsChatLoading(false);
     }
   };
+
+  const renderMessage = (
+    message: ConversationMessage,
+    showApplyButton = false
+  ) => (
+    <div
+      key={message.timestamp}
+      className={`flex ${
+        message.role === "user" ? "justify-end" : "justify-start"
+      }`}
+    >
+      <div
+        className={`max-w-[85%] rounded-lg p-4 ${
+          message.role === "user"
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted border"
+        }`}
+      >
+        <div
+          className={`prose prose-sm max-w-none ${
+            message.role === "user"
+              ? "prose-invert [&>*]:text-primary-foreground"
+              : "dark:prose-invert"
+          }`}
+        >
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeHighlight]}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
+        {showApplyButton &&
+          message.role === "assistant" &&
+          !isInteractiveLoading &&
+          message === interactiveMessages[interactiveMessages.length - 1] && (
+            <div className="mt-3 pt-3 border-t border-border flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => handleApplyInteractiveContent(message.content)}
+              >
+                Apply to PRD
+              </Button>
+            </div>
+          )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -113,17 +328,20 @@ export function AIAssistantPanel({
         <Tabs
           value={activeTab}
           onValueChange={(value) =>
-            setActiveTab(value as "create" | "critique")
+            setActiveTab(value as "interactive" | "critique")
           }
         >
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="create" className="flex items-center gap-2">
+            <TabsTrigger
+              value="interactive"
+              className="flex items-center gap-2"
+            >
               <Wand2 className="w-4 h-4" />
-              Create
+              Interactive PRD
             </TabsTrigger>
             <TabsTrigger value="critique" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Critique
+              Chat & Critique
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -131,125 +349,184 @@ export function AIAssistantPanel({
 
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} className="h-full">
-          <TabsContent value="create" className="h-full mt-0">
+          <TabsContent value="interactive" className="h-full mt-0">
             <div className="h-full flex flex-col">
-              {/* Generation Form */}
-              <div className="p-4 space-y-4 border-b border-border">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Prompt *</label>
-                  <textarea
-                    value={formData.prompt}
-                    onChange={(e) =>
-                      setFormData({ ...formData, prompt: e.target.value })
-                    }
-                    placeholder="Describe what you want to generate (e.g., 'Create user stories for a mobile login feature')"
-                    className="w-full h-20 px-3 py-2 text-sm border border-border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Context (Optional)
-                  </label>
-                  <Input
-                    value={formData.context}
-                    onChange={(e) =>
-                      setFormData({ ...formData, context: e.target.value })
-                    }
-                    placeholder="Additional context about your product or feature"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tone</label>
-                    <select
-                      value={formData.tone}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          tone: e.target.value as
-                            | "professional"
-                            | "casual"
-                            | "technical"
-                            | "executive",
-                        })
-                      }
-                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                      <option value="professional">Professional</option>
-                      <option value="casual">Casual</option>
-                      <option value="technical">Technical</option>
-                      <option value="executive">Executive</option>
-                    </select>
+              {/* Settings and New Chat Button */}
+              <div className="p-4 border-b border-border space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex flex-row gap-6">
+                    {interactiveMessages.length === 0 ? (
+                      <>
+                        <div className="">
+                          <Label className="text-sm font-medium">Tone</Label>
+                          <Select
+                            value={interactiveSettings.tone}
+                            onValueChange={(
+                              value:
+                                | "professional"
+                                | "casual"
+                                | "technical"
+                                | "executive"
+                            ) =>
+                              setInteractiveSettings((prev) => ({
+                                ...prev,
+                                tone: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="professional">
+                                Professional
+                              </SelectItem>
+                              <SelectItem value="casual">Casual</SelectItem>
+                              <SelectItem value="technical">
+                                Technical
+                              </SelectItem>
+                              <SelectItem value="executive">
+                                Executive
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="">
+                          <Label className="text-sm font-medium">
+                            Detail Level
+                          </Label>
+                          <Select
+                            value={interactiveSettings.length}
+                            onValueChange={(
+                              value:
+                                | "brief"
+                                | "standard"
+                                | "detailed"
+                                | "comprehensive"
+                            ) =>
+                              setInteractiveSettings((prev) => ({
+                                ...prev,
+                                length: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="brief">Brief</SelectItem>
+                              <SelectItem value="standard">Standard</SelectItem>
+                              <SelectItem value="detailed">Detailed</SelectItem>
+                              <SelectItem value="comprehensive">
+                                Comprehensive
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Length</label>
-                    <select
-                      value={formData.length}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          length: e.target.value as
-                            | "brief"
-                            | "standard"
-                            | "detailed"
-                            | "comprehensive",
-                        })
-                      }
-                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  {interactiveMessages.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setInteractiveMessages([]);
+                        setInteractiveInput("");
+                      }}
+                      className="flex items-center gap-2"
                     >
-                      <option value="brief">Brief</option>
-                      <option value="standard">Standard</option>
-                      <option value="detailed">Detailed</option>
-                      <option value="comprehensive">Comprehensive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <Button
-                  onClick={handleGenerateContent}
-                  disabled={!formData.prompt.trim() || isGenerating}
-                  className="w-full"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Generate Content
-                    </>
+                      <Plus className="w-4 h-4" />
+                      New Chat
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
 
-              {/* Generated Content */}
-              {generatedContent && (
-                <div className="flex-1 p-4 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">Generated Content</h3>
-                    <Button onClick={handleApplyGenerated} size="sm">
-                      Apply to PRD
-                    </Button>
+              {/* Conversation */}
+              <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                {interactiveMessages.length === 0 ? (
+                  <div className="flex justify-center items-center h-full">
+                    <div className="text-center text-muted-foreground max-w-md">
+                      <Bot className="w-12 h-12 mx-auto mb-4 text-primary" />
+                      <h3 className="text-lg font-medium mb-2 text-foreground">
+                        Interactive PRD Creation
+                      </h3>
+                      <p className="mb-4">
+                        I'll guide you through creating a comprehensive PRD step
+                        by step. Tell me what you want to build and I'll help
+                        you structure it properly.
+                      </p>
+                    </div>
                   </div>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeHighlight]}
-                        >
-                          {generatedContent}
-                        </ReactMarkdown>
+                ) : (
+                  interactiveMessages.map((message) =>
+                    renderMessage(message, true)
+                  )
+                )}
+                {isInteractiveLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-muted rounded-lg p-3 border">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm">Thinking...</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="p-4 border-t border-border">
+                <form
+                  onSubmit={
+                    interactiveMessages.length === 0
+                      ? (e) => {
+                          e.preventDefault();
+                          handleStartInteractiveSession();
+                        }
+                      : handleContinueInteractiveSession
+                  }
+                  className="flex gap-2"
+                >
+                  <Textarea
+                    value={interactiveInput}
+                    onChange={(e) => setInteractiveInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (
+                        e.key === "Enter" &&
+                        e.shiftKey &&
+                        !isInteractiveLoading &&
+                        interactiveInput.trim()
+                      ) {
+                        e.preventDefault();
+                        if (interactiveMessages.length === 0) {
+                          handleStartInteractiveSession();
+                        } else {
+                          handleContinueInteractiveSession(e);
+                        }
+                      }
+                    }}
+                    placeholder={
+                      interactiveMessages.length === 0
+                        ? "Describe the product or feature you want to create a PRD for... (Shift+Enter to send)"
+                        : "Continue the conversation... (Shift+Enter to send)"
+                    }
+                    disabled={isInteractiveLoading}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="submit"
+                    disabled={isInteractiveLoading || !interactiveInput.trim()}
+                  >
+                    {isInteractiveLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4" />
+                    )}
+                  </Button>
+                </form>
+              </div>
             </div>
           </TabsContent>
 
@@ -257,42 +534,19 @@ export function AIAssistantPanel({
             <div className="h-full flex flex-col">
               {/* Chat Messages */}
               <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                {chatMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
-                  >
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      }`}
-                    >
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeHighlight]}
-                        >
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                {chatMessages.map((message) => renderMessage(message))}
                 {isChatLoading && (
                   <div className="flex justify-start">
                     <div className="bg-muted rounded-lg p-3">
                       <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Thinking...</span>
                     </div>
                   </div>
                 )}
                 {chatMessages.length === 0 && (
                   <div className="flex justify-center items-center h-full">
                     <div className="text-center text-muted-foreground">
-                      <Bot className="w-8 h-8 mx-auto mb-2" />
+                      <MessageSquare className="w-8 h-8 mx-auto mb-2" />
                       <p>
                         Ask me questions about your PRD or request feedback!
                       </p>
@@ -308,7 +562,7 @@ export function AIAssistantPanel({
               {/* Chat Input */}
               <div className="p-4 border-t border-border">
                 <form onSubmit={handleChatSubmit} className="flex gap-2">
-                  <Input
+                  <Textarea
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask questions about your PRD or request feedback..."
@@ -322,7 +576,7 @@ export function AIAssistantPanel({
                     {isChatLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <MessageSquare className="w-4 h-4" />
+                      <Send className="w-4 h-4" />
                     )}
                   </Button>
                 </form>

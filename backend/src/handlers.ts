@@ -7,6 +7,7 @@ import {
   GenerateContentResponse,
 } from "./generated";
 import { aiService } from "./aiService";
+import { CritiqueRequest, CritiqueResponse } from "./prompts";
 
 export const getPrds =
   (db: sqlite3.Database) => (req: Request, res: Response) => {
@@ -106,6 +107,14 @@ export const generatePrdContent =
     const { id } = req.params;
     const generateRequest: GenerateContentRequest = req.body;
 
+    console.log("=== PRD Generation Request ===");
+    console.log("PRD ID:", id);
+    console.log("Request prompt:", generateRequest.prompt);
+    console.log(
+      "Conversation history length:",
+      generateRequest.conversation_history?.length || 0
+    );
+
     // Validate required fields
     if (!generateRequest.prompt) {
       res.status(400).json({
@@ -168,6 +177,13 @@ export const generatePrdContent =
           length: generateRequest.length
             ? lengthMap[generateRequest.length]
             : undefined,
+          conversationHistory: generateRequest.conversation_history?.map(
+            (msg) => ({
+              role: msg.role === "user" ? "user" : "assistant",
+              content: msg.content,
+              timestamp: msg.timestamp,
+            })
+          ),
         });
 
         const endTime = Date.now();
@@ -186,6 +202,153 @@ export const generatePrdContent =
         res.status(500).json({
           message: "AI content generation failed",
           code: "AI_GENERATION_ERROR",
+          details: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    });
+  };
+
+// Session management for interactive PRD creation
+export const getSession =
+  (db: sqlite3.Database) => (req: Request, res: Response) => {
+    const { prdId } = req.params;
+
+    db.get(
+      "SELECT * FROM interactive_sessions WHERE prd_id = ? ORDER BY updated_at DESC LIMIT 1",
+      [prdId],
+      (err, row: any) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        if (!row) {
+          res.json(null);
+          return;
+        }
+
+        res.json({
+          id: row.id,
+          prd_id: row.prd_id,
+          conversation_history: JSON.parse(row.conversation_history || "[]"),
+          settings: JSON.parse(row.settings || "{}"),
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        });
+      }
+    );
+  };
+
+export const saveSession =
+  (db: sqlite3.Database) => (req: Request, res: Response) => {
+    const { prdId } = req.params;
+    const { conversation_history, settings } = req.body;
+    const now = new Date().toISOString();
+
+    // First, try to update existing session
+    db.run(
+      `UPDATE interactive_sessions 
+       SET conversation_history = ?, settings = ?, updated_at = ?
+       WHERE prd_id = ?`,
+      [
+        JSON.stringify(conversation_history),
+        JSON.stringify(settings),
+        now,
+        prdId,
+      ],
+      function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        // If no rows were updated, create a new session
+        if (this.changes === 0) {
+          const sessionId = require("uuid").v4();
+          db.run(
+            `INSERT INTO interactive_sessions (id, prd_id, conversation_history, settings, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              sessionId,
+              prdId,
+              JSON.stringify(conversation_history),
+              JSON.stringify(settings),
+              now,
+              now,
+            ],
+            (insertErr) => {
+              if (insertErr) {
+                res.status(500).json({ error: insertErr.message });
+                return;
+              }
+              res.json({ success: true, id: sessionId });
+            }
+          );
+        } else {
+          res.json({ success: true });
+        }
+      }
+    );
+  };
+
+export const critiquePrdContent =
+  (db: sqlite3.Database) => async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const critiqueRequest: CritiqueRequest = req.body;
+
+    // Check if PRD exists and get its content
+    db.get("SELECT * FROM prds WHERE id = ?", [id], async (err, row: any) => {
+      if (err) {
+        res.status(500).json({
+          message: err.message,
+          code: "DATABASE_ERROR",
+        });
+        return;
+      }
+
+      if (!row) {
+        res.status(404).json({
+          message: "PRD not found",
+          code: "PRD_NOT_FOUND",
+        });
+        return;
+      }
+
+      if (!row.content || row.content.trim() === "") {
+        res.status(400).json({
+          message: "PRD has no content to critique",
+          code: "NO_CONTENT",
+        });
+        return;
+      }
+
+      try {
+        const startTime = Date.now();
+
+        // Use real AI service for critique
+        const critiqueResult = await aiService.critiquePRD(
+          row.content,
+          critiqueRequest
+        );
+
+        const endTime = Date.now();
+        const generationTime = (endTime - startTime) / 1000;
+
+        // Add generation metadata
+        const response = {
+          ...critiqueResult,
+          generation_time: generationTime,
+          model_used: "AI Critique System",
+          prd_id: id,
+          prd_title: row.title,
+        };
+
+        res.json(response);
+      } catch (error) {
+        console.error("PRD critique failed:", error);
+        res.status(500).json({
+          message: "AI critique generation failed",
+          code: "AI_CRITIQUE_ERROR",
           details: error instanceof Error ? error.message : "Unknown error",
         });
       }

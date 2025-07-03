@@ -15,6 +15,7 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { PRD } from "../types";
 import { AIAssistantPanel } from "./AIAssistantPanel";
+import { Input } from "./ui/input";
 
 interface PRDEditorProps {
   prd: PRD;
@@ -118,11 +119,11 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FileText className="w-5 h-5 text-muted-foreground" />
-              <input
+              <Input
                 type="text"
                 value={title}
                 onChange={(e) => handleTitleChange(e.target.value)}
-                className="text-xl font-semibold bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
+                className="text-2xl font-semibold bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
                 placeholder="Enter PRD title..."
               />
             </div>
@@ -138,11 +139,26 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
                   <span>Unsaved changes</span>
                 ) : lastSaved ? (
                   <>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="w-4 h-4 primary" />
                     <span>Saved at {lastSaved.toLocaleTimeString()}</span>
                   </>
                 ) : null}
               </div>
+
+              <Sheet open={isAISheetOpen} onOpenChange={setIsAISheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Bot className="w-4 h-4 mr-2" />
+                    AI Assistant
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="min-w-[400px] md:min-w-[500px] p-0">
+                  <AIAssistantPanel
+                    prd={prd}
+                    onApplyContent={handleApplyAIContent}
+                  />
+                </SheetContent>
+              </Sheet>
 
               <Button
                 variant={viewMode === "edit" ? "default" : "outline"}
@@ -159,35 +175,6 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
               >
                 <Eye className="w-4 h-4" />
                 Preview
-              </Button>
-
-              <Sheet open={isAISheetOpen} onOpenChange={setIsAISheetOpen}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Bot className="w-4 h-4 mr-2" />
-                    AI Assistant
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="w-[600px] sm:w-[800px] p-0">
-                  <AIAssistantPanel
-                    prd={prd}
-                    onApplyContent={handleApplyAIContent}
-                  />
-                </SheetContent>
-              </Sheet>
-
-              <Button
-                onClick={handleSave}
-                disabled={isSaving || !hasUnsavedChanges}
-                variant={hasUnsavedChanges ? "default" : "outline"}
-                size="sm"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save
               </Button>
             </div>
           </div>
