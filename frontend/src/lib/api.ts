@@ -1,4 +1,8 @@
-import type { PRD } from "@/types";
+import type {
+  PRD,
+  GenerateContentRequest,
+  GenerateContentResponse,
+} from "@/types";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -70,5 +74,15 @@ export const prdApi = {
   delete: (id: string): Promise<null> =>
     fetchApi<null>(`/prds/${id}`, {
       method: "DELETE",
+    }),
+
+  // Generate AI content for PRD
+  generateContent: (
+    id: string,
+    request: GenerateContentRequest
+  ): Promise<GenerateContentResponse> =>
+    fetchApi<GenerateContentResponse>(`/prds/${id}/generate`, {
+      method: "POST",
+      body: JSON.stringify(request),
     }),
 };

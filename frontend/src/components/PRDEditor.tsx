@@ -1,10 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
-import { Save, FileText, Eye, Edit, Loader2, CheckCircle } from "lucide-react";
+import {
+  Save,
+  FileText,
+  Eye,
+  Edit,
+  Loader2,
+  CheckCircle,
+  Bot,
+} from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { PRD } from "../types";
+import { AIAssistantPanel } from "./AIAssistantPanel";
 
 interface PRDEditorProps {
   prd: PRD;
@@ -19,6 +29,7 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isAISheetOpen, setIsAISheetOpen] = useState(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when a new PRD is selected
@@ -93,6 +104,12 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
     setHasUnsavedChanges(true);
   };
 
+  const handleApplyAIContent = (aiContent: string) => {
+    setContent(aiContent);
+    setHasUnsavedChanges(true);
+    setIsAISheetOpen(false);
+  };
+
   return (
     <div className="flex-1 flex w-full">
       {/* Editor */}
@@ -143,10 +160,27 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
                 <Eye className="w-4 h-4" />
                 Preview
               </Button>
+
+              <Sheet open={isAISheetOpen} onOpenChange={setIsAISheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Bot className="w-4 h-4 mr-2" />
+                    AI Assistant
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-[600px] sm:w-[800px] p-0">
+                  <AIAssistantPanel
+                    prd={prd}
+                    onApplyContent={handleApplyAIContent}
+                  />
+                </SheetContent>
+              </Sheet>
+
               <Button
                 onClick={handleSave}
                 disabled={isSaving || !hasUnsavedChanges}
                 variant={hasUnsavedChanges ? "default" : "outline"}
+                size="sm"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
