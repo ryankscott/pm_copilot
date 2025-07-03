@@ -6,6 +6,7 @@ import {
   GenerateContentRequest,
   GenerateContentResponse,
 } from "./generated";
+import { aiService } from "./aiService";
 
 export const getPrds =
   (db: sqlite3.Database) => (req: Request, res: Response) => {
@@ -135,16 +136,47 @@ export const generatePrdContent =
       try {
         const startTime = Date.now();
 
-        // Mock AI content generation - replace with actual AI service call
-        const mockGeneratedContent = generateMockContent(generateRequest);
+        // Map the enum values to strings for our AI service
+        const toneMap: Record<
+          string,
+          "professional" | "casual" | "technical" | "executive"
+        > = {
+          professional: "professional",
+          casual: "casual",
+          technical: "technical",
+          executive: "executive",
+        };
+
+        const lengthMap: Record<
+          string,
+          "brief" | "standard" | "comprehensive"
+        > = {
+          brief: "brief",
+          standard: "standard",
+          detailed: "comprehensive", // Map 'detailed' to 'comprehensive'
+          comprehensive: "comprehensive",
+        };
+
+        // Use real AI service instead of mock
+        const aiResult = await aiService.generateContent({
+          prompt: generateRequest.prompt,
+          context: generateRequest.context,
+          existingContent: generateRequest.existing_content,
+          tone: generateRequest.tone
+            ? toneMap[generateRequest.tone]
+            : undefined,
+          length: generateRequest.length
+            ? lengthMap[generateRequest.length]
+            : undefined,
+        });
 
         const endTime = Date.now();
-        const generationTime = (endTime - startTime) / 1000; // Convert to seconds
+        const generationTime = (endTime - startTime) / 1000;
 
         const response: GenerateContentResponse = {
-          generated_content: mockGeneratedContent,
-          tokens_used: Math.floor(Math.random() * 500) + 100, // Mock token count
-          model_used: "gpt-4", // Mock model
+          generated_content: aiResult.content,
+          tokens_used: aiResult.tokensUsed,
+          model_used: aiResult.modelUsed,
           generation_time: generationTime,
           suggestions: generateMockSuggestions(generateRequest),
         };
