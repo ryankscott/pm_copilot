@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
   Select,
@@ -225,8 +224,28 @@ export function AIAssistantPanel({
     }
   };
 
+  // Helper function to check if content contains PRD tags
+  const hasPrdTags = (content: string): boolean => {
+    return content.includes("<prd>") && content.includes("</prd>");
+  };
+
+  // Helper function to extract content between PRD tags
+  const extractPrdContent = (content: string): string => {
+    const startTag = "<prd>";
+    const endTag = "</prd>";
+    const startIndex = content.indexOf(startTag);
+    const endIndex = content.indexOf(endTag);
+
+    if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
+      return content; // Return original content if tags are not found or malformed
+    }
+
+    return content.substring(startIndex + startTag.length, endIndex).trim();
+  };
+
   const handleApplyInteractiveContent = (content: string) => {
-    onApplyContent(content);
+    const prdContent = extractPrdContent(content);
+    onApplyContent(prdContent);
   };
 
   const handleChatSubmit = async (e: React.FormEvent) => {
@@ -303,7 +322,8 @@ export function AIAssistantPanel({
         {showApplyButton &&
           message.role === "assistant" &&
           !isInteractiveLoading &&
-          message === interactiveMessages[interactiveMessages.length - 1] && (
+          message === interactiveMessages[interactiveMessages.length - 1] &&
+          hasPrdTags(message.content) && (
             <div className="mt-3 pt-3 border-t border-border flex gap-2">
               <Button
                 size="sm"
