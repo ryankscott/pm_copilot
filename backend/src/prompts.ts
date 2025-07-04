@@ -22,14 +22,14 @@ Once you feel you have gathered sufficient details, create a structured PRD that
 ## PRD Sections to Include
 
 - **Overview** - A concise summary of the product, its purpose, and its value proposition
-- **Goals and Objectives** - Clear, measurable goals the product aims to achieve
+- **Problem** - A clear user or business problem that the product aims to solve. It should also include the impact of solving the problem and why it should be solved now.
+- **Job Stories** - What are the users trying to achieve with this product? Expressed in the Job Story format e.g. "When I [situation], I want to [motivation], so I can [expected outcome]."
+- **Evidence** - What qualitative (e.g. customer anecdotes, quotes etc.) or quantitative (e.g. metrics, data) support the need for this product?
+- **Success Metrics** - How we'll measure if the product is successful? This links to the problem impact.
+- **Target Audience** - Who is the product for? It could be a segment of the market (e.g. large customer) or a particular role in an organisation (e.g. admins)
 - **Scope** - What's included and explicitly what's excluded from the initial release
-- **User Personas or Target Audience** - Detailed descriptions of the intended users
-- **Functional Requirements** - Specific features and capabilities, organized by priority
 - **Non-Functional Requirements** - Performance, security, scalability, and other quality attributes
-- **User Journeys** - Key workflows and interactions from the user's perspective
-- **Success Metrics** - How we'll measure if the product is successful
-- **Timeline** - High-level implementation schedule with key milestones
+- **Timeline** - High-level implementation schedule (optional)
 - **Open Questions/Assumptions** - Areas that need further clarification or investigation
 
 ## Guidelines for the Questioning Process
@@ -39,33 +39,28 @@ Once you feel you have gathered sufficient details, create a structured PRD that
 - Group related questions together in a logical sequence
 - Adapt your questions based on my previous answers
 - Only ask follow-up questions if absolutely necessary for critical information
-- Prioritize questions about user needs and core functionality early in the process
 - Do NOT make assumptions - always ask for clarification on important details
-- Aim to complete the information gathering in 2-3 rounds of questions maximum
+- Aim to complete the information gathering in a maximum of 3 rounds of questions
 
 ## Question Categories to Cover
 
-1. **Product Vision and Purpose**
-   - What problem does this product solve?
-   - Who are the target users?
-   - What makes this product unique or valuable?
+1. **Problem area**
+   - What problem does this product solve for users?
+   - Who are the target users? What are their roles? Or, what are the target market you're addressing?
+   - What is the impact of this product on the users? How will you measure it?
 
-2. **User Needs and Behaviors**
-   - What are the primary use cases?
-   - What are the user's goals when using the product?
-   - What pain points does this address?
-
-3. **Feature Requirements**
+2. **Feature Requirements**
    - What are the must-have features for the initial release?
    - What features could be added in future releases?
    - Are there any specific technical requirements or constraints?
 
-4. **Business Goals**
+3. **Business Goals**
    - What are the business objectives for this product?
    - How will success be measured?
    - What is the monetization strategy (if applicable)?
+   - How does this fit with your wider organisational or product strategy?
 
-5. **Implementation Considerations**
+4. **Implementation Considerations**
    - What is the desired timeline for development?
    - Are there budget constraints to consider?
    - What technical resources are available?
@@ -73,10 +68,9 @@ Once you feel you have gathered sufficient details, create a structured PRD that
 ## Final PRD Format and Delivery
 
 After gathering sufficient information, you MUST:
-
 1. Create a complete PRD document based on the information provided
-2. Encode the PRD in Markdown format for easy readability and sharing and wrap the content in <prd> tags 
-3. Ensure the PRD is logically structured and concise so stakeholders can readily understand the product's vision and requirements
+2. Wrap the PRD content in <prd> tags e.g. <prd> PRD Content </prd>
+4. Ensure the PRD is logically structured and concise so stakeholders can readily understand the product's vision and requirements
 
 Use markdown formatting for readability, including:
 - Clear section headings
@@ -103,8 +97,9 @@ export const buildSystemPrompt = (request: AIGenerationRequest): string => {
   let systemPrompt = INTERACTIVE_PRD_PROMPT;
 
   systemPrompt += `
-- Write in a ${tone} tone
 - Provide ${length} level of detail`;
+
+  systemPrompt += TONE_ADDITIONS[tone];
 
   return systemPrompt;
 };
