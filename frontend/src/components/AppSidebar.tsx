@@ -9,9 +9,17 @@ import {
 } from "@/components/ui/sidebar";
 import { PRDList } from "./PRDList";
 import { Settings2, Github } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Link } from "@tanstack/react-router";
 
 // Menu items.
 export function AppSidebar() {
+  const { success } = useToast();
+
+  const handleGitHubClick = () => {
+    success("Redirecting to GitHub", "Opening issues page in a new tab");
+  };
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -29,16 +37,17 @@ export function AppSidebar() {
             href="https://github.com/ryankscott/pm_copilot/issues"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={handleGitHubClick}
           >
             <Github className="w-4 h-4" />
             <span>GitHub Issues</span>
           </a>
         </SidebarMenuButton>
         <SidebarMenuButton asChild>
-          <a href={"/settings"}>
+          <Link to="/settings">
             <Settings2 className="w-4 h-4" />
             <span>Settings</span>
-          </a>
+          </Link>
         </SidebarMenuButton>
       </SidebarFooter>
     </Sidebar>

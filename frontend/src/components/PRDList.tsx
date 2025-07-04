@@ -5,9 +5,12 @@ import { Calendar, Plus, Loader2, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { usePrds, useCreatePrd, useDeletePrd } from "@/hooks/use-prd-queries";
+import { useToast } from "@/hooks/use-toast";
 
 export function PRDList() {
   const { data: prds, isLoading, refetch } = usePrds();
+
+  const { success, error: errorToast } = useToast();
   const createPrd = useCreatePrd();
   const deletePrd = useDeletePrd();
   const router = useRouter();
@@ -21,8 +24,10 @@ export function PRDList() {
       await deletePrd.mutateAsync(prdId);
       refetch();
       router.navigate({ to: "/" });
+      success("PRD Deleted", "Successfully deleted PRD");
     } catch (error) {
       console.error("Failed to delete PRD:", error);
+      errorToast("Failed to delete PRD", "Please try again later.");
     }
   };
 
@@ -38,6 +43,8 @@ export function PRDList() {
         to: "/prd/$prdId",
         params: { prdId: newPrd.id! },
       });
+
+      success("PRD Created", "Successfully created PRD");
     } catch (error) {
       console.error("Failed to create PRD:", error);
     }
