@@ -7,15 +7,14 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { PRD } from "../types";
 import { AIAssistantPanel } from "./AIAssistantPanel";
-import { Input } from "./ui/input";
+import { EditableHeader } from "./EditableHeader";
 
 interface PRDEditorProps {
   prd: PRD;
   onUpdatePrd: (prd: PRD) => Promise<void>;
-  onSave: () => void;
 }
 
-export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
+export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
   const [title, setTitle] = useState(prd.title);
   const [content, setContent] = useState(prd.content);
   const [viewMode, setViewMode] = useState<"edit" | "preview">("preview");
@@ -92,13 +91,7 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FileText className="w-5 h-5 text-muted-foreground" />
-              <Input
-                type="text"
-                value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                className="text-2xl font-semibold bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
-                placeholder="Enter PRD title..."
-              />
+              <EditableHeader value={title} onChange={handleTitleChange} />
             </div>
             <div className="flex items-center space-x-2">
               {/* Save Status */}

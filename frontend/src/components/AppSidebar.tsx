@@ -15,7 +15,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarContent>
-        <SidebarHeader>PMCopilot</SidebarHeader>
+        <SidebarHeader className="text-xl font-bold">PM Copilot</SidebarHeader>
         <SidebarGroup>
           <SidebarGroupContent>
             <h3 className="font-semibold text-md">PRDs</h3>
@@ -25,7 +25,11 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenuButton asChild>
-          <a href="https://github.com/ryankscott/pm_copilot/issues" target="_blank" rel="noopener noreferrer">
+          <a
+            href="https://github.com/ryankscott/pm_copilot/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             <Github className="w-4 h-4" />
             <span>GitHub Issues</span>
           </a>
