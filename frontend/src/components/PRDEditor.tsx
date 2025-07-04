@@ -1,14 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
-import {
-  Save,
-  FileText,
-  Eye,
-  Edit,
-  Loader2,
-  CheckCircle,
-  Bot,
-} from "lucide-react";
+import { FileText, Eye, Edit, Loader2, CheckCircle, Bot } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -75,25 +67,6 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
       debouncedSave(updatedPrd);
     }
   }, [title, content, hasUnsavedChanges, prd, debouncedSave]);
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const updatedPrd = {
-        ...prd,
-        title: title.trim() || "Untitled PRD",
-        content,
-      };
-      await onUpdatePrd(updatedPrd);
-      setLastSaved(new Date());
-      setHasUnsavedChanges(false);
-      onSave();
-    } catch (error) {
-      console.error("Manual save failed:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
