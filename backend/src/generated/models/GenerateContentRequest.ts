@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ConversationMessage } from './ConversationMessage';
+import type { LLMProviderConfig } from './LLMProviderConfig';
 export type GenerateContentRequest = {
     /**
      * The prompt or instruction for AI content generation
@@ -28,6 +29,14 @@ export type GenerateContentRequest = {
      * Previous conversation messages for interactive sessions
      */
     conversation_history?: Array<ConversationMessage>;
+    /**
+     * LLM provider configuration to use for generation
+     */
+    provider?: LLMProviderConfig;
+    /**
+     * Specific model to use for generation
+     */
+    model?: string;
 };
 export namespace GenerateContentRequest {
     /**

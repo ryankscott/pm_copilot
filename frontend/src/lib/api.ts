@@ -3,6 +3,9 @@ import type {
   GenerateContentRequest,
   GenerateContentResponse,
   ConversationMessage,
+  LLMProviderConfig,
+  CritiqueRequest,
+  CritiqueResponse,
 } from "@/types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -86,6 +89,13 @@ export const prdApi = {
       method: "POST",
       body: JSON.stringify(request),
     }),
+
+  // Get AI critique for PRD
+  critique: (id: string, request: CritiqueRequest): Promise<CritiqueResponse> =>
+    fetchApi<CritiqueResponse>(`/prds/${id}/critique`, {
+      method: "POST",
+      body: JSON.stringify(request),
+    }),
 };
 
 // Interactive session API calls
@@ -116,5 +126,32 @@ export const sessionApi = {
     fetchApi(`/prds/${prdId}/session`, {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+};
+
+// Provider testing API
+export const providerApi = {
+  // Test provider connection
+  testConnection: (
+    provider: LLMProviderConfig,
+    model?: string
+  ): Promise<{
+    success: boolean;
+    provider: string;
+    model: string;
+    responseTime?: number;
+    message?: string;
+    error?: string;
+  }> =>
+    fetchApi<{
+      success: boolean;
+      provider: string;
+      model: string;
+      responseTime?: number;
+      message?: string;
+      error?: string;
+    }>("/test-provider", {
+      method: "POST",
+      body: JSON.stringify({ provider, model }),
     }),
 };

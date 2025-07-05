@@ -15,6 +15,18 @@ export type ConversationMessage = {
      * When the message was sent
      */
     timestamp?: string;
+    /**
+     * Number of input tokens used (for assistant messages)
+     */
+    input_tokens?: number;
+    /**
+     * Number of output tokens generated (for assistant messages)
+     */
+    output_tokens?: number;
+    /**
+     * Time taken to generate the message in seconds (for assistant messages)
+     */
+    total_time?: number;
 };
 export namespace ConversationMessage {
     /**

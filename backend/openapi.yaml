@@ -168,6 +168,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /test-provider:
+    post:
+      summary: Test LLM Provider Connection
+      description: Test if a provider configuration is working correctly
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+              properties:
+                provider:
+                  $ref: "#/components/schemas/LLMProviderConfig"
+                model:
+                  type: string
+                  description: Specific model to test
+                  example: "gpt-4o-mini"
+      responses:
+        "200":
+          description: Provider test successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether the test was successful
+                  provider:
+                    type: string
+                    description: The provider that was tested
+                  model:
+                    type: string
+                    description: The model that was tested
+                  responseTime:
+                    type: number
+                    format: float
+                    description: Response time in seconds
+                  message:
+                    type: string
+                    description: Success message
+        "400":
+          description: Bad request - invalid provider configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Provider test failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  provider:
+                    type: string
+                  model:
+                    type: string
+                  error:
+                    type: string
+                    description: Error message describing what went wrong
 components:
   schemas:
     PRD:
@@ -215,9 +281,18 @@ components:
           items:
             $ref: "#/components/schemas/ConversationMessage"
           description: Previous conversation messages for interactive sessions
+        provider:
+          $ref: "#/components/schemas/LLMProviderConfig"
+          description: LLM provider configuration to use for generation
+        model:
+          type: string
+          description: Specific model to use for generation
+          example: "gpt-4o"
     CritiqueRequest:
       type: object
       properties:
+        existing_content:
+          description: Existing content to enhance or build upon
         focus_areas:
           type: array
           items:
@@ -248,6 +323,13 @@ components:
           type: string
           description: Any custom criteria or specific aspects to evaluate
           example: "Focus on security requirements and compliance considerations"
+        provider:
+          $ref: "#/components/schemas/LLMProviderConfig"
+          description: LLM provider configuration to use for critique
+        model:
+          type: string
+          description: Specific model to use for critique
+          example: "gpt-4o"
     ConversationMessage:
       type: object
       required:
@@ -265,15 +347,31 @@ components:
           type: string
           format: date-time
           description: When the message was sent
+        input_tokens:
+          type: integer
+          description: Number of input tokens used (for assistant messages)
+        output_tokens:
+          type: integer
+          description: Number of output tokens generated (for assistant messages)
+        total_time:
+          type: number
+          format: float
+          description: Time taken to generate the message in seconds (for assistant messages)
     GenerateContentResponse:
       type: object
       properties:
         generated_content:
           type: string
           description: The AI-generated content
+        input_tokens:
+          type: integer
+          description: Number of input tokens used
+        output_tokens:
+          type: integer
+          description: Number of output tokens generated
         tokens_used:
           type: integer
-          description: Number of tokens consumed in the generation
+          description: Total number of tokens consumed
         model_used:
           type: string
           description: The AI model used for generation
@@ -290,73 +388,73 @@ components:
     CritiqueResponse:
       type: object
       properties:
-        overall_score:
-          type: number
-          format: float
-          minimum: 0
-          maximum: 10
-          description: Overall quality score for the PRD (0-10)
-        strengths:
-          type: array
-          items:
-            type: string
-          description: Areas where the PRD excels
-        weaknesses:
-          type: array
-          items:
-            type: string
-          description: Areas that need improvement
-        missing_sections:
-          type: array
-          items:
-            type: string
-          description: Important sections that are missing from the PRD
-        suggestions:
-          type: array
-          items:
-            $ref: "#/components/schemas/CritiqueSuggestion"
-          description: Specific improvement suggestions
-        detailed_feedback:
-          type: object
-          additionalProperties:
-            type: string
-          description: Section-by-section detailed feedback
-        action_items:
-          type: array
-          items:
-            type: string
-          description: Prioritized list of actions to improve the PRD
-        critique_summary:
+        summary:
           type: string
           description: Executive summary of the critique
-    CritiqueSuggestion:
+        input_tokens:
+          type: integer
+          description: Number of input tokens used
+        output_tokens:
+          type: integer
+          description: Number of output tokens generated
+        tokens_used:
+          type: integer
+          description: Total number of tokens consumed
+        model_used:
+          type: string
+          description: The AI model used for critique
+        generation_time:
+          type: number
+          format: float
+          description: Time taken to generate critique in seconds
+    LLMProviderConfig:
       type: object
       properties:
-        category:
+        type:
           type: string
-          enum:
-            [
-              "structure",
-              "content",
-              "clarity",
-              "requirements",
-              "technical",
-              "business",
-            ]
-          description: Category of the suggestion
-        priority:
+          enum: ["openai", "anthropic", "google", "ollama"]
+          description: The LLM provider type
+        name:
           type: string
-          enum: ["high", "medium", "low"]
-          description: Priority level of the suggestion
-        title:
+          description: Display name of the provider
+        apiKey:
           type: string
-          description: Brief title of the suggestion
+          description: API key for the provider (if required)
+        baseURL:
+          type: string
+          description: Base URL for the provider API (for custom deployments)
+        isConfigured:
+          type: boolean
+          description: Whether the provider is properly configured
+    LLMModel:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the model
+        name:
+          type: string
+          description: Display name of the model
         description:
           type: string
-          description: Detailed description of the suggestion
-        example:
-          type: string
-          description: Example of how to implement the suggestion
+          description: Description of the model's capabilities
+        maxTokens:
+          type: integer
+          description: Maximum token limit for the model
+        supportsStreaming:
+          type: boolean
+          description: Whether the model supports streaming responses
+        costPer1kTokens:
+          type: object
+          properties:
+            input:
+              type: number
+              format: float
+              description: Cost per 1k input tokens
+            output:
+              type: number
+              format: float
+              description: Cost per 1k output tokens
     Error:
       type: object
       required:

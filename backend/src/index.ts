@@ -12,6 +12,7 @@ import {
   updatePrd,
   getSession,
   saveSession,
+  testProvider,
 } from "./handlers";
 
 const app = express();
@@ -20,7 +21,11 @@ const port = 8080;
 // Enable CORS for all routes
 app.use(
   cors({
-    origin: ["http://localhost:5173"], // Support multiple Vite dev server ports
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:5175",
+    ], // Support multiple Vite dev server ports
     credentials: true,
   })
 );
@@ -40,6 +45,9 @@ initDB("prds.db")
     // Interactive session endpoints
     app.get("/prds/:prdId/session", getSession(db));
     app.post("/prds/:prdId/session", saveSession(db));
+
+    // Provider testing endpoint
+    app.post("/test-provider", testProvider);
 
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);

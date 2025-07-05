@@ -1,93 +1,125 @@
 import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOllama } from "ollama-ai-provider";
 import { generateText } from "ai";
 import "dotenv/config";
 import {
   buildSystemPrompt,
-  buildUserPrompt,
   buildCritiqueSystemPrompt,
   buildCritiqueUserPrompt,
-  ConversationMessage,
-  CritiqueRequest,
-  CritiqueResponse,
 } from "./prompts";
+import {
+  CritiqueRequest,
+  GenerateContentRequest,
+  GenerateContentResponse,
+  CritiqueResponse,
+  LLMProviderConfig,
+} from "./generated";
 
-// Configure Ollama as an OpenAI-compatible provider
-const ollama = createOpenAI({
-  baseURL: process.env.OLLAMA_BASE_URL || "http://localhost:11434/v1",
-  apiKey: "ollama", // Ollama doesn't require a real API key
+// Configure Ollama using the dedicated provider
+const ollama = createOllama({
+  baseURL: "http://localhost:11434/api",
 });
 
-export interface AIGenerationRequest {
-  prompt: string;
-  context?: string;
-  existingContent?: string;
-  tone?: "professional" | "casual" | "technical" | "executive";
-  length?: "brief" | "standard" | "comprehensive";
-  conversationHistory?: ConversationMessage[];
-}
+// Helper function to get the appropriate AI model based on provider configuration
+const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
+  // Default fallback
+  const defaultModel = "llama3.2:latest";
 
-export interface AIGenerationResponse {
-  content: string;
-  tokensUsed: number;
-  modelUsed: string;
-  generationTime: number;
-}
+  if (!provider || !provider.isConfigured) {
+    console.log("No provider configured, using Ollama default:", defaultModel);
+    return { model: ollama(defaultModel), modelName: defaultModel };
+  }
 
-// Configuration
-const getModel = (): string => process.env.OLLAMA_MODEL || "llama3.2:latest";
+  const selectedModel = modelId || defaultModel;
 
-// Main generation function
+  switch (provider.type) {
+    case "openai":
+      if (!provider.apiKey) {
+        console.warn("OpenAI API key not provided, falling back to Ollama");
+        return { model: ollama(defaultModel), modelName: defaultModel };
+      }
+      // Create OpenAI instance with provided API key
+      const openaiWithKey = createOpenAI({
+        apiKey: provider.apiKey,
+      });
+      console.log("Using OpenAI model:", selectedModel);
+      return { model: openaiWithKey(selectedModel), modelName: selectedModel };
+
+    case "anthropic":
+      if (!provider.apiKey) {
+        console.warn("Anthropic API key not provided, falling back to Ollama");
+        return { model: ollama(defaultModel), modelName: defaultModel };
+      }
+      // Create Anthropic instance with provided API key
+      const anthropicWithKey = createAnthropic({
+        apiKey: provider.apiKey,
+      });
+      console.log("Using Anthropic model:", selectedModel);
+      return {
+        model: anthropicWithKey(selectedModel),
+        modelName: selectedModel,
+      };
+
+    case "google":
+      if (!provider.apiKey) {
+        console.warn("Google API key not provided, falling back to Ollama");
+        return { model: ollama(defaultModel), modelName: defaultModel };
+      }
+      // Create Google instance with provided API key
+      const googleWithKey = createGoogleGenerativeAI({
+        apiKey: provider.apiKey,
+      });
+      console.log("Using Google model:", selectedModel);
+      return { model: googleWithKey(selectedModel), modelName: selectedModel };
+
+    case "ollama":
+      return { model: ollama(selectedModel), modelName: selectedModel };
+
+    default:
+      console.log("Unknown provider type, using Ollama default:", defaultModel);
+      return { model: ollama(defaultModel), modelName: defaultModel };
+  }
+};
+
 export const generateContent = async (
-  request: AIGenerationRequest
-): Promise<AIGenerationResponse> => {
+  request: GenerateContentRequest
+): Promise<GenerateContentResponse> => {
   const startTime = Date.now();
-  const model = getModel();
+
+  // Get the appropriate model based on provider configuration
+  const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
     // Build the system prompt based on request parameters
     const systemPrompt = buildSystemPrompt(request);
 
-    console.log("Generating content with AI model:", model);
+    console.log("Generating content with AI model:", modelName);
+    console.log("Provider:", request.provider?.type || "ollama (default)");
     console.log("Request prompt:", request.prompt);
     console.log(
       "Conversation history length:",
-      request.conversationHistory?.length || 0
+      request.conversation_history?.length || 0
     );
-
-    // Include conversation history as context
-    const messages = [];
-    if (request.conversationHistory) {
-      // Add conversation history as context
-      for (const msg of request.conversationHistory) {
-        messages.push({
-          role:
-            msg.role === "user" ? ("user" as const) : ("assistant" as const),
-          content: msg.content,
-        });
-      }
-    }
 
     // Add the current user prompt as the latest message
-    const userPrompt = buildUserPrompt(
-      request,
-      request.conversationHistory || [],
-      request.existingContent
+    console.log(
+      "Total messages being sent to AI:",
+      request.conversation_history?.length
     );
-    console.log("Built user prompt:", userPrompt);
-
-    messages.push({
-      role: "user" as const,
-      content: userPrompt,
-    });
-
-    console.log("Total messages being sent to AI:", messages.length);
 
     const result = await generateText({
-      model: ollama(model),
+      model: model,
       system: systemPrompt,
       maxTokens: 1000,
       temperature: 0.7,
-      messages: messages,
+      prompt: request.prompt,
+      messages:
+        request?.conversation_history &&
+        request?.conversation_history?.length > 0
+          ? request.conversation_history
+          : undefined,
     });
 
     const endTime = Date.now();
@@ -101,10 +133,12 @@ export const generateContent = async (
     );
 
     return {
-      content: result.text,
-      tokensUsed: result.usage?.totalTokens || 0,
-      modelUsed: model,
-      generationTime,
+      generated_content: result.text,
+      tokens_used: result.usage?.totalTokens || 0,
+      input_tokens: result.usage?.promptTokens || 0,
+      output_tokens: result.usage?.completionTokens || 0,
+      model_used: modelName,
+      generation_time: generationTime,
     };
   } catch (error) {
     console.error("AI generation failed:", error);
@@ -118,59 +152,43 @@ export const generateContent = async (
 
 // Main critique function
 export const critiquePRD = async (
-  prdContent: string,
   request: CritiqueRequest
 ): Promise<CritiqueResponse> => {
   const startTime = Date.now();
-  const model = getModel();
+
+  // Get the appropriate model based on provider configuration
+  const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
     const systemPrompt = buildCritiqueSystemPrompt(request);
-    const userPrompt = buildCritiqueUserPrompt(prdContent, request);
+    const userPrompt = buildCritiqueUserPrompt(request);
 
-    console.log("Critiquing PRD with AI model:", model);
+    console.log("Critiquing PRD with AI model:", modelName);
+    console.log("Provider:", request.provider?.type || "ollama (default)");
 
     const result = await generateText({
-      model: ollama(model),
+      model,
       system: systemPrompt,
       prompt: userPrompt,
-      maxTokens: 2000, // More tokens for detailed critique
-      temperature: 0.3, // Lower temperature for more consistent critique
+      maxTokens: 2000,
+      temperature: 0.3,
     });
+    console.log({ result });
 
     const endTime = Date.now();
     const generationTime = (endTime - startTime) / 1000;
 
     console.log("AI critique completed in", generationTime, "seconds");
+    console.log("Generated critique:", JSON.stringify(result.text, null, 2));
 
-    // Try to parse the JSON response
-    let critiqueData: CritiqueResponse;
-    try {
-      critiqueData = JSON.parse(result.text);
-    } catch (parseError) {
-      console.error("Failed to parse critique JSON, using fallback format");
-      // Fallback to a structured response if JSON parsing fails
-      critiqueData = {
-        overall_score: 7.0,
-        strengths: ["Critique generated successfully"],
-        weaknesses: ["AI response format needs improvement"],
-        missing_sections: [],
-        suggestions: [
-          {
-            category: "content",
-            priority: "medium",
-            title: "Response Format",
-            description: "The AI response should be properly formatted as JSON",
-            example: "Ensure the critique follows the expected schema",
-          },
-        ],
-        detailed_feedback: { general: result.text },
-        action_items: ["Review and improve AI response formatting"],
-        critique_summary: result.text.substring(0, 500) + "...",
-      };
-    }
-
-    return critiqueData;
+    return {
+      summary: result.text,
+      input_tokens: result.usage?.promptTokens || 0,
+      output_tokens: result.usage?.completionTokens || 0,
+      tokens_used: result.usage?.totalTokens || 0,
+      model_used: modelName,
+      generation_time: generationTime,
+    } as CritiqueResponse;
   } catch (error) {
     console.error("AI critique failed:", error);
     throw new Error(
@@ -181,8 +199,70 @@ export const critiquePRD = async (
   }
 };
 
-// Export service object with both functions
+// Test provider connection with a simple AI request
+export const testProvider = async (
+  provider: LLMProviderConfig,
+  modelId?: string
+): Promise<{
+  success: boolean;
+  provider: string;
+  model: string;
+  response_time: number;
+  test_content: string;
+  error?: string;
+}> => {
+  const startTime = Date.now();
+
+  try {
+    // Get the appropriate model based on provider configuration
+    const { model, modelName } = getAIModel(provider, modelId);
+
+    console.log("Testing provider:", provider.type);
+    console.log("Testing model:", modelName);
+
+    // Simple test prompt to verify the provider is working
+    const result = await generateText({
+      model: model,
+      prompt: "Say 'Hello from AI provider test!' in exactly those words.",
+      maxTokens: 50,
+      temperature: 0.1, // Very low temperature for consistent response
+    });
+
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000;
+
+    console.log("Provider test completed in", responseTime, "seconds");
+    console.log("Test response:", result.text);
+
+    return {
+      success: true,
+      provider: provider.type || "unknown",
+      model: modelName,
+      response_time: responseTime,
+      test_content: result.text,
+    };
+  } catch (error) {
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000;
+
+    console.error("Provider test failed:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
+    return {
+      success: false,
+      provider: provider.type || "unknown",
+      model: modelId || "unknown",
+      response_time: responseTime,
+      test_content: "",
+      error: errorMessage,
+    };
+  }
+};
+
+// Export service object with all functions
 export const aiService = {
   generateContent,
   critiquePRD,
+  testProvider,
 };

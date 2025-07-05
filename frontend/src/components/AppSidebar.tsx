@@ -31,8 +31,8 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenuButton asChild>
+      <SidebarFooter className="flex flex-row gap-2 ">
+        <SidebarMenuButton asChild className="max-w-[40px] flex justify-center">
           <a
             href="https://github.com/ryankscott/pm_copilot/issues"
             target="_blank"
@@ -40,13 +40,11 @@ export function AppSidebar() {
             onClick={handleGitHubClick}
           >
             <Github className="w-4 h-4" />
-            <span>GitHub Issues</span>
           </a>
         </SidebarMenuButton>
-        <SidebarMenuButton asChild>
+        <SidebarMenuButton asChild className="max-w-[40px] flex justify-center">
           <Link to="/settings">
             <Settings2 className="w-4 h-4" />
-            <span>Settings</span>
           </Link>
         </SidebarMenuButton>
       </SidebarFooter>

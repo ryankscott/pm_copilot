@@ -8,7 +8,15 @@ export type GenerateContentResponse = {
      */
     generated_content?: string;
     /**
-     * Number of tokens consumed in the generation
+     * Number of input tokens used
+     */
+    input_tokens?: number;
+    /**
+     * Number of output tokens generated
+     */
+    output_tokens?: number;
+    /**
+     * Total number of tokens consumed
      */
     tokens_used?: number;
     /**

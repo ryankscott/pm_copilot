@@ -1,4 +1,4 @@
-import { AIGenerationRequest } from "./aiService";
+import { CritiqueRequest, GenerateContentRequest } from "./generated";
 
 export interface PromptConfig {
   tone: string;
@@ -91,7 +91,7 @@ const TONE_ADDITIONS = {
 } as const;
 
 // Helper function to build system prompt (always interactive)
-export const buildSystemPrompt = (request: AIGenerationRequest): string => {
+export const buildSystemPrompt = (request: GenerateContentRequest): string => {
   const { tone = "professional", length = "standard" } = request;
 
   let systemPrompt = INTERACTIVE_PRD_PROMPT;
@@ -99,66 +99,10 @@ export const buildSystemPrompt = (request: AIGenerationRequest): string => {
   systemPrompt += `
 - Provide ${length} level of detail`;
 
-  systemPrompt += TONE_ADDITIONS[tone];
+  systemPrompt += TONE_ADDITIONS?.[tone];
 
   return systemPrompt;
 };
-
-// Helper function to build user prompt for interactive sessions
-export const buildUserPrompt = (
-  request: AIGenerationRequest,
-  conversationHistory: ConversationMessage[] = [],
-  currentPrdContent?: string
-): string => {
-  let prompt = "";
-
-  // If this is the start of an interactive session
-  if (conversationHistory.length === 0) {
-    prompt = `I want to create a new PRD. Here's my initial request: "${request.prompt}"`;
-
-    if (currentPrdContent && currentPrdContent.trim()) {
-      prompt += `\n\nExisting PRD content to build upon:\n\`\`\`markdown\n${currentPrdContent}\n\`\`\``;
-    }
-  } else {
-    // Continue the conversation
-    prompt = request.prompt;
-  }
-
-  return prompt;
-};
-
-// Critique-specific interfaces
-export interface CritiqueRequest {
-  focus_areas?: string[];
-  depth?: "overview" | "detailed" | "comprehensive";
-  include_suggestions?: boolean;
-  custom_criteria?: string;
-}
-
-export interface CritiqueSuggestion {
-  category:
-    | "structure"
-    | "content"
-    | "clarity"
-    | "requirements"
-    | "technical"
-    | "business";
-  priority: "high" | "medium" | "low";
-  title: string;
-  description: string;
-  example?: string;
-}
-
-export interface CritiqueResponse {
-  overall_score: number;
-  strengths: string[];
-  weaknesses: string[];
-  missing_sections: string[];
-  suggestions: CritiqueSuggestion[];
-  detailed_feedback: Record<string, string>;
-  action_items: string[];
-  critique_summary: string;
-}
 
 // PRD Critique system prompt
 const PRD_CRITIQUE_PROMPT = `
@@ -302,7 +246,6 @@ ${custom_criteria}`;
   }
 
   systemPrompt += `\n\n## Important Notes:
-- Structure your response as a JSON object matching the CritiqueResponse schema
 - Provide scores as numbers between 0-10
 - Make suggestions specific and actionable
 - Include examples where helpful
@@ -312,16 +255,13 @@ ${custom_criteria}`;
 };
 
 // Build critique user prompt
-export const buildCritiqueUserPrompt = (
-  prdContent: string,
-  request: CritiqueRequest
-): string => {
+export const buildCritiqueUserPrompt = (request: CritiqueRequest): string => {
   const { include_suggestions = true } = request;
 
   let prompt = `Please analyze and critique the following PRD:
 
 \`\`\`markdown
-${prdContent}
+${request.existing_content}
 \`\`\`
 
 Provide a comprehensive critique focusing on:
@@ -336,9 +276,7 @@ ${
   include_suggestions
     ? "Include specific examples and suggestions for improvement in each area."
     : "Focus on identifying issues without providing detailed suggestions."
-}
-
-Please structure your response as a JSON object that matches the expected CritiqueResponse format.`;
+}`;
 
   return prompt;
 };
