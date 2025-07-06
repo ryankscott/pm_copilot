@@ -42,7 +42,7 @@ export function AIAssistantPanel({
             </TabsTrigger>
             <TabsTrigger value="critique" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              Chat & Critique
+              Critique
             </TabsTrigger>
           </TabsList>
         </Tabs>

@@ -5,6 +5,7 @@ import {
   ThumbsUpIcon,
   ThumbsDownIcon,
 } from "lucide-react";
+import AIAvatar from "./AIAvatar";
 
 interface MetadataFooterProps {
   inputTokens?: number;
@@ -15,6 +16,8 @@ interface MetadataFooterProps {
   onThumbsUp?: () => void;
   onThumbsDown?: () => void;
   className?: string;
+  provider?: string; // Optional provider name
+  model?: string; // Optional model name
 }
 
 export function MetadataFooter({
@@ -26,6 +29,8 @@ export function MetadataFooter({
   onThumbsUp,
   onThumbsDown,
   className = "",
+  provider = "", // Default to empty string if not provided
+  model = "", // Default to empty string if not provided
 }: MetadataFooterProps) {
   // Helper function to format cost for display
   const formatCost = (cost: number): string => {
@@ -54,6 +59,8 @@ export function MetadataFooter({
   return (
     <div className={`mt-3 pt-3 border-t border-border ${className}`}>
       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground justify-center">
+        {/* AI model icon */}
+        {<AIAvatar provider={provider} model={model} />}
         {/* Token usage */}
         {(inputTokens || outputTokens) && (
           <div className="flex items-center gap-1">

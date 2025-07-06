@@ -340,10 +340,10 @@ function ModelSelection() {
               return (
                 <div className="space-y-1 text-sm">
                   <div>Max Tokens: {model.maxTokens?.toLocaleString()}</div>
-                  {model.costPer1kTokens && (
+                  {model.costPer1MTokens && (
                     <div>
-                      Cost: ${model.costPer1kTokens.input}/1k input, $
-                      {model.costPer1kTokens.output}/1k output
+                      Cost: ${model.costPer1MTokens.input}/1M input, $
+                      {model.costPer1MTokens.output}/1M output
                     </div>
                   )}
                   <div>

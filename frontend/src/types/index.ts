@@ -14,6 +14,8 @@ export interface ConversationMessage {
   output_tokens?: number;
   total_time?: number;
   cost?: number;
+  model_used?: string;
+  has_error?: boolean;
 }
 
 export interface GenerateContentRequest {

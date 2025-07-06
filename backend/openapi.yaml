@@ -444,7 +444,7 @@ components:
         supportsStreaming:
           type: boolean
           description: Whether the model supports streaming responses
-        costPer1kTokens:
+        costPer1MTokens:
           type: object
           properties:
             input:

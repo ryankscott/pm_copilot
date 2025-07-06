@@ -23,7 +23,7 @@ export type LLMModel = {
      * Whether the model supports streaming responses
      */
     supportsStreaming?: boolean;
-    costPer1kTokens?: {
+    costPer1MTokens?: {
         /**
          * Cost per 1k input tokens
          */

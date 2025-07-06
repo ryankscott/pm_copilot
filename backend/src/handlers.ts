@@ -124,18 +124,51 @@ export const generatePrdContent =
 
     try {
       const startTime = Date.now();
+      const maxRetries = 3;
+      let aiResult;
 
-      // Use real AI service instead of mock
-      const aiResult = await aiService.generateContent({
-        prompt: generateRequest.prompt,
-        context: generateRequest.context,
-        existing_content: generateRequest.existing_content,
-        tone: generateRequest.tone,
-        length: generateRequest.length,
-        conversation_history: generateRequest.conversation_history,
-        provider: generateRequest.provider,
-        model: generateRequest.model,
-      });
+      // Retry logic for empty content
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        console.log(`AI generation attempt ${attempt}/${maxRetries}`);
+
+        aiResult = await aiService.generateContent({
+          //@ts-expect-error
+          prompt:
+            generateRequest?.conversation_history?.length == 0
+              ? generateRequest.prompt
+              : undefined,
+          context: generateRequest.context,
+          existing_content: generateRequest.existing_content,
+          tone: generateRequest.tone,
+          length: generateRequest.length,
+          conversation_history: generateRequest.conversation_history,
+          provider: generateRequest.provider,
+          model: generateRequest.model,
+        });
+
+        // Check if result has meaningful content
+        if (
+          aiResult?.generated_content &&
+          aiResult.generated_content.trim().length > 0
+        ) {
+          console.log(`AI generation successful on attempt ${attempt}`);
+          break;
+        }
+
+        console.log(`Attempt ${attempt} failed - empty or no content returned`);
+
+        // If this was the last attempt, throw an error
+        if (attempt === maxRetries) {
+          throw new Error(
+            `AI service returned empty content after ${maxRetries} attempts`
+          );
+        }
+
+        // Add a small delay between retries (exponential backoff)
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (attempt + 1) ** 2)
+        );
+      }
 
       const endTime = Date.now();
       const generationTime = (endTime - startTime) / 1000;
