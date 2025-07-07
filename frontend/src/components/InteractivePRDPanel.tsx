@@ -172,15 +172,7 @@ export function InteractivePRDPanel({
     }
   }, [interactiveMessages, saveSession]);
 
-  const handleInteractiveSession = async (
-    isStart: boolean = false,
-    e?: React.FormEvent
-  ) => {
-    // Handle form submission if this is a continue action
-    if (e) {
-      e.preventDefault();
-    }
-
+  const handleInteractiveSession = async (isStart: boolean = false) => {
     if (!interactiveInput.trim() || isInteractiveLoading) return;
 
     const requestId = generateRequestId();
@@ -256,23 +248,66 @@ export function InteractivePRDPanel({
 
   // Convenience wrapper functions for the two use cases
   const handleStartInteractiveSession = () => handleInteractiveSession(true);
-  const handleContinueInteractiveSession = (e: React.FormEvent) =>
-    handleInteractiveSession(false, e);
+  const handleContinueInteractiveSession = () =>
+    handleInteractiveSession(false);
 
   const handleApplyInteractiveContent = (content: string) => {
     const prdContent = extractPrdContent(content);
     onApplyContent(prdContent);
   };
 
-  const handleRetry = () => {};
+  const handleRetry = () => {
+    if (interactiveMessages.length === 0) {
+      // No messages to retry, shouldn't happen but handle gracefully
+      return;
+    }
+
+    const lastMessage = interactiveMessages[interactiveMessages.length - 1];
+
+    // If the last message is an error or failed assistant message, we need to:
+    // 1. Find the last user message
+    // 2. Remove the failed assistant message and the user message that caused it
+    // 3. Retry with the user message content
+
+    if (lastMessage.role === "assistant" && lastMessage.has_error) {
+      // Remove the failed assistant message
+      const messagesWithoutError = interactiveMessages.slice(0, -1);
+
+      // Find the last user message to retry
+      const lastUserMessage = messagesWithoutError
+        .slice()
+        .reverse()
+        .find((msg) => msg.role === "user");
+
+      if (lastUserMessage) {
+        // Remove the user message that caused the error as well, since we'll re-add it
+        const messagesWithoutLastUser = messagesWithoutError.filter(
+          (msg) => msg !== lastUserMessage
+        );
+
+        setInteractiveMessages(messagesWithoutLastUser);
+        setInteractiveInput(lastUserMessage.content);
+
+        // Directly retry with the content - no need for setTimeout
+        // The handleInteractiveSession will add the user message again
+        if (messagesWithoutLastUser.length === 0) {
+          // This will be a fresh start
+          handleInteractiveSession(true);
+        } else {
+          // This will continue the conversation
+          handleInteractiveSession(false);
+        }
+      }
+    }
+  };
 
   // Helper functions for form handling
   const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (interactiveMessages.length === 0) {
-      e.preventDefault();
       handleStartInteractiveSession();
     } else {
-      handleContinueInteractiveSession(e);
+      handleContinueInteractiveSession();
     }
   };
 
@@ -287,7 +322,7 @@ export function InteractivePRDPanel({
       if (interactiveMessages.length === 0) {
         handleStartInteractiveSession();
       } else {
-        handleContinueInteractiveSession(e as React.FormEvent);
+        handleContinueInteractiveSession();
       }
     }
   };
