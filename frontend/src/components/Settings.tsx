@@ -317,7 +317,7 @@ function ModelSelection() {
                   <div>
                     <div className="font-medium">{model.name}</div>
                     {model.description && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground max-w-48 truncate">
                         {model.description}
                       </div>
                     )}

@@ -2,7 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
-import { generateText } from "ai";
+import { generateText, CoreMessage } from "ai";
 import "dotenv/config";
 import {
   buildSystemPrompt,
@@ -95,31 +95,44 @@ export const generateContent = async (
     // Build the system prompt based on request parameters
     const systemPrompt = buildSystemPrompt(request);
 
-    console.log("Generating content with AI model:", modelName);
-    console.log("Provider:", request.provider?.type || "ollama (default)");
-    console.log("Request prompt:", request.prompt);
-    console.log(
-      "Conversation history length:",
-      request.conversation_history?.length || 0
-    );
+    // Check if we have a valid prompt
+    if (!request.prompt || request.prompt.trim() === "") {
+      throw new Error("No prompt provided. The current user input is missing.");
+    }
 
-    // Add the current user prompt as the latest message
-    console.log(
-      "Total messages being sent to AI:",
-      request.conversation_history?.length
-    );
+    // Prepare messages array - include conversation history + current prompt
+    let messages: CoreMessage[] = [];
+    if (
+      request.conversation_history &&
+      request.conversation_history.length > 0
+    ) {
+      // Add existing conversation history - filter and validate roles
+      messages = request.conversation_history
+        .filter((msg) => msg.role === "user" || msg.role === "assistant")
+        .map((msg) => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }));
+
+      // Add the current user prompt as the latest message
+      messages.push({
+        role: "user",
+        content: request.prompt,
+      });
+    } else {
+      console.log(
+        "No conversation history, using prompt directly:",
+        JSON.stringify(request.prompt)
+      );
+    }
 
     const result = await generateText({
       model: model,
       system: systemPrompt,
-      maxTokens: 1000,
+      maxTokens: 10000,
       temperature: 0.7,
-      prompt: request.prompt,
-      messages:
-        request?.conversation_history &&
-        request?.conversation_history?.length > 0
-          ? request.conversation_history
-          : undefined,
+      prompt: messages.length === 0 ? request.prompt : undefined,
+      messages: messages.length > 0 ? messages : undefined,
     });
 
     const endTime = Date.now();

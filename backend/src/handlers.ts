@@ -132,11 +132,7 @@ export const generatePrdContent =
         console.log(`AI generation attempt ${attempt}/${maxRetries}`);
 
         aiResult = await aiService.generateContent({
-          //@ts-expect-error
-          prompt:
-            generateRequest?.conversation_history?.length == 0
-              ? generateRequest.prompt
-              : undefined,
+          prompt: generateRequest.prompt,
           context: generateRequest.context,
           existing_content: generateRequest.existing_content,
           tone: generateRequest.tone,

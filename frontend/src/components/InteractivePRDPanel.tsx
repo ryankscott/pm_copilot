@@ -314,7 +314,7 @@ export function InteractivePRDPanel({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (
       e.key === "Enter" &&
-      e.shiftKey &&
+      !e.shiftKey &&
       !isInteractiveLoading &&
       interactiveInput.trim()
     ) {
@@ -334,8 +334,8 @@ export function InteractivePRDPanel({
 
   const getPlaceholder = () => {
     return interactiveMessages.length === 0
-      ? "Describe the product or feature you want to create a PRD for... (Shift+Enter to send)"
-      : "Continue the conversation... (Shift+Enter to send)";
+      ? "Describe the product or feature you want to create a PRD for... (Enter to send, Shift+Enter for new line)"
+      : "Continue the conversation... (Enter to send, Shift+Enter for new line)";
   };
 
   // Render a single message using the MessageComponent
