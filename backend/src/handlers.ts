@@ -361,3 +361,44 @@ export const testProvider = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getOllamaModels = async (req: Request, res: Response) => {
+  const baseURL = req.query.baseURL as string || "http://localhost:11434";
+  
+  console.log("=== Ollama Models Request ===");
+  console.log("Base URL:", baseURL);
+
+  try {
+    const response = await fetch(`${baseURL}/api/tags`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.models || !Array.isArray(data.models)) {
+      throw new Error("Invalid response format from Ollama API");
+    }
+    
+    // Transform Ollama models to our LLMModel format
+    const models = data.models.map((model: any) => ({
+      id: model.name,
+      name: model.name,
+      description: `Local model - ${model.name}`,
+      maxTokens: 8192, // Default, could be made configurable
+      supportsStreaming: true,
+      costPer1MTokens: { input: 0, output: 0 }, // Local models are free
+    }));
+    
+    console.log(`Successfully fetched ${models.length} models from Ollama`);
+    res.json(models);
+  } catch (error) {
+    console.error("Failed to fetch Ollama models:", error);
+    res.status(500).json({
+      message: "Failed to fetch models from Ollama",
+      code: "OLLAMA_FETCH_ERROR",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};

@@ -6,6 +6,7 @@ import type {
   ProviderType,
   LLMModel,
 } from "@/types";
+import { providerApi } from "@/lib/api";
 
 // Default model configurations for each provider
 const DEFAULT_MODELS: Record<ProviderType, LLMModel[]> = {
@@ -161,6 +162,9 @@ interface LLMStore {
   getCurrentModel: () => LLMModel | undefined;
   isProviderConfigured: (type: ProviderType) => boolean;
 
+  // Ollama-specific functions
+  fetchOllamaModels: (baseURL?: string) => Promise<void>;
+
   // Reset
   resetToDefaults: () => void;
 }
@@ -185,6 +189,14 @@ export const useLLMStore = create<LLMStore>()(
         set((state) => {
           const provider = state.settings.providers[type];
           const defaultModel = provider.models[0]?.id || "";
+          
+          // If switching to Ollama, trigger model fetching
+          if (type === "ollama") {
+            const baseURL = provider.baseURL || "http://localhost:11434";
+            // Fetch models asynchronously without blocking the state update
+            get().fetchOllamaModels(baseURL);
+          }
+          
           return {
             settings: {
               ...state.settings,
@@ -289,6 +301,42 @@ export const useLLMStore = create<LLMStore>()(
       isProviderConfigured: (type) => {
         const state = get();
         return state.settings.providers[type].isConfigured;
+      },
+
+      fetchOllamaModels: async (baseURL?: string) => {
+        try {
+          const models = await providerApi.getOllamaModels(baseURL);
+          set((state) => {
+            const currentSelectedModel = state.settings.selectedModel;
+            const isCurrentModelAvailable = models.some(model => model.id === currentSelectedModel);
+            
+            // If the currently selected model is not available in the new models,
+            // select the first available model
+            const newSelectedModel = isCurrentModelAvailable 
+              ? currentSelectedModel 
+              : models[0]?.id || "";
+
+            return {
+              settings: {
+                ...state.settings,
+                providers: {
+                  ...state.settings.providers,
+                  ollama: {
+                    ...state.settings.providers.ollama,
+                    models,
+                  },
+                },
+                // Update selected model if the current provider is Ollama
+                selectedModel: state.settings.selectedProvider === "ollama" 
+                  ? newSelectedModel 
+                  : state.settings.selectedModel,
+              },
+            };
+          });
+        } catch (error) {
+          console.error("Failed to fetch Ollama models:", error);
+          // Keep the default models if fetch fails
+        }
       },
 
       resetToDefaults: () => set({ settings: DEFAULT_SETTINGS }),

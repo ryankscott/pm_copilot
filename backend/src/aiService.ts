@@ -17,19 +17,18 @@ import {
   LLMProviderConfig,
 } from "./generated";
 
-// Configure Ollama using the dedicated provider
-const ollama = createOllama({
-  baseURL: "http://localhost:11434/api",
-});
-
 // Helper function to get the appropriate AI model based on provider configuration
 const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
   // Default fallback
   const defaultModel = "llama3.2:latest";
+  const defaultOllamaBaseURL = "http://localhost:11434";
 
   if (!provider || !provider.isConfigured) {
     console.log("No provider configured, using Ollama default:", defaultModel);
-    return { model: ollama(defaultModel), modelName: defaultModel };
+    const defaultOllama = createOllama({
+      baseURL: `${defaultOllamaBaseURL}/api`,
+    });
+    return { model: defaultOllama(defaultModel), modelName: defaultModel };
   }
 
   const selectedModel = modelId || defaultModel;
@@ -38,7 +37,10 @@ const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
     case "openai":
       if (!provider.apiKey) {
         console.warn("OpenAI API key not provided, falling back to Ollama");
-        return { model: ollama(defaultModel), modelName: defaultModel };
+        const fallbackOllama = createOllama({
+          baseURL: `${defaultOllamaBaseURL}/api`,
+        });
+        return { model: fallbackOllama(defaultModel), modelName: defaultModel };
       }
       // Create OpenAI instance with provided API key
       const openaiWithKey = createOpenAI({
@@ -50,7 +52,10 @@ const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
     case "anthropic":
       if (!provider.apiKey) {
         console.warn("Anthropic API key not provided, falling back to Ollama");
-        return { model: ollama(defaultModel), modelName: defaultModel };
+        const fallbackOllama = createOllama({
+          baseURL: `${defaultOllamaBaseURL}/api`,
+        });
+        return { model: fallbackOllama(defaultModel), modelName: defaultModel };
       }
       // Create Anthropic instance with provided API key
       const anthropicWithKey = createAnthropic({
@@ -65,7 +70,10 @@ const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
     case "google":
       if (!provider.apiKey) {
         console.warn("Google API key not provided, falling back to Ollama");
-        return { model: ollama(defaultModel), modelName: defaultModel };
+        const fallbackOllama = createOllama({
+          baseURL: `${defaultOllamaBaseURL}/api`,
+        });
+        return { model: fallbackOllama(defaultModel), modelName: defaultModel };
       }
       // Create Google instance with provided API key
       const googleWithKey = createGoogleGenerativeAI({
@@ -75,11 +83,20 @@ const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
       return { model: googleWithKey(selectedModel), modelName: selectedModel };
 
     case "ollama":
-      return { model: ollama(selectedModel), modelName: selectedModel };
+      // Use the provider's baseURL or fall back to default
+      const ollamaBaseURL = provider.baseURL || defaultOllamaBaseURL;
+      const ollamaInstance = createOllama({
+        baseURL: `${ollamaBaseURL}/api`,
+      });
+      console.log("Using Ollama model:", selectedModel, "at", ollamaBaseURL);
+      return { model: ollamaInstance(selectedModel), modelName: selectedModel };
 
     default:
       console.log("Unknown provider type, using Ollama default:", defaultModel);
-      return { model: ollama(defaultModel), modelName: defaultModel };
+      const defaultOllama = createOllama({
+        baseURL: `${defaultOllamaBaseURL}/api`,
+      });
+      return { model: defaultOllama(defaultModel), modelName: defaultModel };
   }
 };
 

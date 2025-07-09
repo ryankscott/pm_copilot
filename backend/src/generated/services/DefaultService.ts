@@ -6,6 +6,7 @@ import type { CritiqueRequest } from '../models/CritiqueRequest';
 import type { CritiqueResponse } from '../models/CritiqueResponse';
 import type { GenerateContentRequest } from '../models/GenerateContentRequest';
 import type { GenerateContentResponse } from '../models/GenerateContentResponse';
+import type { LLMModel } from '../models/LLMModel';
 import type { LLMProviderConfig } from '../models/LLMProviderConfig';
 import type { PRD } from '../models/PRD';
 import type { CancelablePromise } from '../core/CancelablePromise';
@@ -202,6 +203,27 @@ export class DefaultService {
             errors: {
                 400: `Bad request - invalid provider configuration`,
                 500: `Provider test failed`,
+            },
+        });
+    }
+    /**
+     * Get available Ollama models
+     * Fetch the list of models available on the local Ollama instance
+     * @param baseUrl Base URL for the Ollama API
+     * @returns LLMModel Successfully retrieved available models
+     * @throws ApiError
+     */
+    public static getOllamaModels(
+        baseUrl: string = 'http://localhost:11434',
+    ): CancelablePromise<Array<LLMModel>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/ollama/models',
+            query: {
+                'baseURL': baseUrl,
+            },
+            errors: {
+                500: `Failed to fetch models from Ollama`,
             },
         });
     }

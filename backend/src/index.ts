@@ -13,6 +13,7 @@ import {
   getSession,
   saveSession,
   testProvider,
+  getOllamaModels,
 } from "./handlers";
 
 const app = express();
@@ -32,6 +33,12 @@ app.use(
 
 app.use(bodyParser.json());
 
+// Provider testing endpoint (doesn't require database)
+app.post("/test-provider", testProvider);
+
+// Ollama models endpoint (doesn't require database)
+app.get("/ollama/models", getOllamaModels);
+
 initDB("prds.db")
   .then((db) => {
     app.get("/prds", getPrds(db));
@@ -45,9 +52,6 @@ initDB("prds.db")
     // Interactive session endpoints
     app.get("/prds/:prdId/session", getSession(db));
     app.post("/prds/:prdId/session", saveSession(db));
-
-    // Provider testing endpoint
-    app.post("/test-provider", testProvider);
 
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Eye, EyeOff, Check, X, Settings as SettingsIcon } from "lucide-react";
 import { useLLMStore } from "@/store/llm-store";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { providerApi } from "@/lib/api";
 
 const PROVIDER_INFO: Record<
@@ -57,7 +57,7 @@ const PROVIDER_INFO: Record<
 };
 
 function ProviderCard({ type }: { type: ProviderType }) {
-  const { settings, updateProvider, setApiKey, isProviderConfigured } =
+  const { settings, updateProvider, setApiKey, isProviderConfigured, fetchOllamaModels } =
     useLLMStore();
   const [showKey, setShowKey] = useState(false);
   const [testStatus, setTestStatus] = useState<
@@ -91,6 +91,10 @@ function ProviderCard({ type }: { type: ProviderType }) {
       setTestStatus("idle");
       setTestError("");
       setResponseTime(null);
+    }
+    // Fetch models if this is Ollama and has a valid URL
+    if (type === "ollama" && value) {
+      fetchOllamaModels(value);
     }
   };
 
@@ -267,11 +271,19 @@ function ProviderCard({ type }: { type: ProviderType }) {
 }
 
 function ModelSelection() {
-  const { settings, setSelectedProvider, setSelectedModel } = useLLMStore();
+  const { settings, setSelectedProvider, setSelectedModel, fetchOllamaModels } = useLLMStore();
   const currentProvider = settings.providers[settings.selectedProvider];
   const availableProviders = Object.entries(settings.providers)
     .filter(([, provider]) => provider.isConfigured)
     .map(([type]) => ({ type: type as ProviderType }));
+
+  // Fetch Ollama models when the provider is selected
+  useEffect(() => {
+    if (settings.selectedProvider === "ollama") {
+      const baseURL = settings.providers.ollama.baseURL || "http://localhost:11434";
+      fetchOllamaModels(baseURL);
+    }
+  }, [settings.selectedProvider, settings.providers.ollama.baseURL, fetchOllamaModels]);
 
   return (
     <Card className="p-6 max-w-md">

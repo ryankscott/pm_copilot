@@ -234,6 +234,33 @@ paths:
                   error:
                     type: string
                     description: Error message describing what went wrong
+  /ollama/models:
+    get:
+      summary: Get available Ollama models
+      description: Fetch the list of models available on the local Ollama instance
+      parameters:
+        - name: baseURL
+          in: query
+          required: false
+          schema:
+            type: string
+            default: "http://localhost:11434"
+          description: Base URL for the Ollama API
+      responses:
+        "200":
+          description: Successfully retrieved available models
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LLMModel"
+        "500":
+          description: Failed to fetch models from Ollama
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     PRD:

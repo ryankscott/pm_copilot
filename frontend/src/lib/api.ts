@@ -6,6 +6,7 @@ import type {
   LLMProviderConfig,
   CritiqueRequest,
   CritiqueResponse,
+  LLMModel,
 } from "@/types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -154,4 +155,8 @@ export const providerApi = {
       method: "POST",
       body: JSON.stringify({ provider, model }),
     }),
+  
+  // Get available Ollama models
+  getOllamaModels: (baseURL: string = "http://localhost:11434"): Promise<LLMModel[]> =>
+    fetchApi<LLMModel[]>(`/ollama/models?baseURL=${encodeURIComponent(baseURL)}`),
 };
