@@ -2,6 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { CritiqueRequest } from '../models/CritiqueRequest';
+import type { CritiqueResponse } from '../models/CritiqueResponse';
+import type { GenerateContentRequest } from '../models/GenerateContentRequest';
+import type { GenerateContentResponse } from '../models/GenerateContentResponse';
+import type { LLMModel } from '../models/LLMModel';
+import type { LLMProviderConfig } from '../models/LLMProviderConfig';
 import type { PRD } from '../models/PRD';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -95,6 +101,129 @@ export class DefaultService {
             },
             errors: {
                 404: `PRD not found`,
+            },
+        });
+    }
+    /**
+     * Generate AI content for a PRD
+     * Generate content for a specific section of a PRD or enhance existing content using AI
+     * @param id The ID of the PRD to generate content for
+     * @param requestBody
+     * @returns GenerateContentResponse Successfully generated content
+     * @throws ApiError
+     */
+    public static postPrdsGenerate(
+        id: string,
+        requestBody: GenerateContentRequest,
+    ): CancelablePromise<GenerateContentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/prds/{id}/generate',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid input parameters`,
+                404: `PRD not found`,
+                500: `Internal server error - AI generation failed`,
+            },
+        });
+    }
+    /**
+     * Get AI critique and feedback for a PRD
+     * Analyze an existing PRD and provide detailed critique, suggestions, and improvement recommendations
+     * @param id The ID of the PRD to critique
+     * @param requestBody
+     * @returns CritiqueResponse Successfully generated critique
+     * @throws ApiError
+     */
+    public static postPrdsCritique(
+        id: string,
+        requestBody: CritiqueRequest,
+    ): CancelablePromise<CritiqueResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/prds/{id}/critique',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid input parameters`,
+                404: `PRD not found`,
+                500: `Internal server error - AI critique failed`,
+            },
+        });
+    }
+    /**
+     * Test LLM Provider Connection
+     * Test if a provider configuration is working correctly
+     * @param requestBody
+     * @returns any Provider test successful
+     * @throws ApiError
+     */
+    public static postTestProvider(
+        requestBody: {
+            provider: LLMProviderConfig;
+            /**
+             * Specific model to test
+             */
+            model?: string;
+        },
+    ): CancelablePromise<{
+        /**
+         * Whether the test was successful
+         */
+        success?: boolean;
+        /**
+         * The provider that was tested
+         */
+        provider?: string;
+        /**
+         * The model that was tested
+         */
+        model?: string;
+        /**
+         * Response time in seconds
+         */
+        responseTime?: number;
+        /**
+         * Success message
+         */
+        message?: string;
+    }> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/test-provider',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid provider configuration`,
+                500: `Provider test failed`,
+            },
+        });
+    }
+    /**
+     * Get available Ollama models
+     * Fetch the list of models available on the local Ollama instance
+     * @param baseUrl Base URL for the Ollama API
+     * @returns LLMModel Successfully retrieved available models
+     * @throws ApiError
+     */
+    public static getOllamaModels(
+        baseUrl: string = 'http://localhost:11434',
+    ): CancelablePromise<Array<LLMModel>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/ollama/models',
+            query: {
+                'baseURL': baseUrl,
+            },
+            errors: {
+                500: `Failed to fetch models from Ollama`,
             },
         });
     }

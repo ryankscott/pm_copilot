@@ -1,19 +1,35 @@
 import { useMatchRoute, useRouter } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader } from "./ui/card";
-import { Calendar, Plus, Loader2 } from "lucide-react";
+import { Calendar, Plus, Loader2, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "./ui/button";
-import { usePrds, useCreatePrd } from "@/hooks/use-prd-queries";
+import { usePrds, useCreatePrd, useDeletePrd } from "@/hooks/use-prd-queries";
+import { useToast } from "@/hooks/use-toast";
 
 export function PRDList() {
-  const { data: prds, isLoading } = usePrds();
+  const { data: prds, isLoading, refetch } = usePrds();
+
+  const { success, error: errorToast } = useToast();
   const createPrd = useCreatePrd();
+  const deletePrd = useDeletePrd();
   const router = useRouter();
   const matchRoute = useMatchRoute();
   // Get the current prdId from the route (if on a PRD page)
   const match = matchRoute({ from: "/prd/$prdId" });
   const currentPrdId = match ? match.prdId : undefined;
+
+  const handleDeletePrd = async (prdId: string) => {
+    try {
+      await deletePrd.mutateAsync(prdId);
+      refetch();
+      router.navigate({ to: "/" });
+      success("PRD Deleted", "Successfully deleted PRD");
+    } catch (error) {
+      console.error("Failed to delete PRD:", error);
+      errorToast("Failed to delete PRD", "Please try again later.");
+    }
+  };
 
   const handleCreatePrd = async () => {
     try {
@@ -27,6 +43,8 @@ export function PRDList() {
         to: "/prd/$prdId",
         params: { prdId: newPrd.id! },
       });
+
+      success("PRD Created", "Successfully created PRD");
     } catch (error) {
       console.error("Failed to create PRD:", error);
     }
@@ -66,9 +84,24 @@ export function PRDList() {
           <Link to={"/prd/$prdId"} key={prd.id} params={{ prdId: prd.id }}>
             <Card
               key={prd.id}
-              className={`my-1 min-w-0 flex-1 ${prd.id === currentPrdId ? "bg-primary-100" : "bg-background"}`}
+              className={`my-1 min-w-0 flex-1 ${
+                prd.id === currentPrdId ? "bg-primary-100" : "bg-background"
+              }`}
             >
-              <CardHeader>{prd.title}</CardHeader>
+              <CardHeader>
+                <div className="flex flex-row items-center justify-between">
+                  {prd.title}
+                  <div
+                    className="rounded-xl hover:bg-gray-300 p-1"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDeletePrd(prd.id);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                </div>
+              </CardHeader>
               <CardContent>
                 {/* Metadata */}
                 <div className="flex items-center gap-1">

@@ -1,24 +1,27 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
-import { Save, FileText, Eye, Edit, Loader2, CheckCircle } from "lucide-react";
+import { FileText, Eye, Edit, Loader2, CheckCircle, Bot } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import type { PRD } from "../types";
+import { AIAssistantPanel } from "./AIAssistantPanel";
+import { EditableHeader } from "./EditableHeader";
 
 interface PRDEditorProps {
   prd: PRD;
   onUpdatePrd: (prd: PRD) => Promise<void>;
-  onSave: () => void;
 }
 
-export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
+export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
   const [title, setTitle] = useState(prd.title);
   const [content, setContent] = useState(prd.content);
   const [viewMode, setViewMode] = useState<"edit" | "preview">("preview");
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isAISheetOpen, setIsAISheetOpen] = useState(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update local state when a new PRD is selected
@@ -64,25 +67,6 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
     }
   }, [title, content, hasUnsavedChanges, prd, debouncedSave]);
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const updatedPrd = {
-        ...prd,
-        title: title.trim() || "Untitled PRD",
-        content,
-      };
-      await onUpdatePrd(updatedPrd);
-      setLastSaved(new Date());
-      setHasUnsavedChanges(false);
-      onSave();
-    } catch (error) {
-      console.error("Manual save failed:", error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleTitleChange = (newTitle: string) => {
     setTitle(newTitle);
     setHasUnsavedChanges(true);
@@ -93,6 +77,12 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
     setHasUnsavedChanges(true);
   };
 
+  const handleApplyAIContent = (aiContent: string) => {
+    setContent(aiContent);
+    setHasUnsavedChanges(true);
+    setIsAISheetOpen(false);
+  };
+
   return (
     <div className="flex-1 flex w-full">
       {/* Editor */}
@@ -101,13 +91,7 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <FileText className="w-5 h-5 text-muted-foreground" />
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => handleTitleChange(e.target.value)}
-                className="text-xl font-semibold bg-transparent border-none outline-none focus:ring-0 text-foreground placeholder:text-muted-foreground"
-                placeholder="Enter PRD title..."
-              />
+              <EditableHeader value={title} onChange={handleTitleChange} />
             </div>
             <div className="flex items-center space-x-2">
               {/* Save Status */}
@@ -121,11 +105,26 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
                   <span>Unsaved changes</span>
                 ) : lastSaved ? (
                   <>
-                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <CheckCircle className="w-4 h-4 primary" />
                     <span>Saved at {lastSaved.toLocaleTimeString()}</span>
                   </>
                 ) : null}
               </div>
+
+              <Sheet open={isAISheetOpen} onOpenChange={setIsAISheetOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Bot className="w-4 h-4 mr-2" />
+                    AI Assistant
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="min-w-[400px] md:min-w-[500px] p-0">
+                  <AIAssistantPanel
+                    prd={prd}
+                    onApplyContent={handleApplyAIContent}
+                  />
+                </SheetContent>
+              </Sheet>
 
               <Button
                 variant={viewMode === "edit" ? "default" : "outline"}
@@ -142,18 +141,6 @@ export function PRDEditor({ prd, onUpdatePrd, onSave }: PRDEditorProps) {
               >
                 <Eye className="w-4 h-4" />
                 Preview
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving || !hasUnsavedChanges}
-                variant={hasUnsavedChanges ? "default" : "outline"}
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Save className="w-4 h-4" />
-                )}
-                Save
               </Button>
             </div>
           </div>

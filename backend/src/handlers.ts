@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import sqlite3 from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
-import { PRD } from "./generated";
+import { PRD, GenerateContentRequest, CritiqueRequest } from "./generated";
+import { aiService } from "./aiService";
 
 export const getPrds =
   (db: sqlite3.Database) => (req: Request, res: Response) => {
@@ -95,3 +96,309 @@ export const deletePrd =
       res.status(204).send();
     });
   };
+
+export const generatePrdContent =
+  (db: sqlite3.Database) => async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const generateRequest: GenerateContentRequest = req.body;
+
+    console.log("=== PRD Generation Request ===");
+    console.log("PRD ID:", id);
+    console.log("Request prompt:", generateRequest.prompt);
+    console.log(
+      "Conversation history length:",
+      generateRequest.conversation_history?.length || 0
+    );
+    console.log("Provider:", generateRequest.provider?.type);
+    console.log("Model:", generateRequest.model);
+    console.log("Provider configured:", generateRequest.provider?.isConfigured);
+
+    // Validate required fields
+    if (!generateRequest.prompt) {
+      res.status(400).json({
+        message: "Missing required field: prompt",
+        code: "VALIDATION_ERROR",
+      });
+      return;
+    }
+
+    try {
+      const startTime = Date.now();
+      const maxRetries = 3;
+      let aiResult;
+
+      // Retry logic for empty content
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        console.log(`AI generation attempt ${attempt}/${maxRetries}`);
+
+        aiResult = await aiService.generateContent({
+          prompt: generateRequest.prompt,
+          context: generateRequest.context,
+          existing_content: generateRequest.existing_content,
+          tone: generateRequest.tone,
+          length: generateRequest.length,
+          conversation_history: generateRequest.conversation_history,
+          provider: generateRequest.provider,
+          model: generateRequest.model,
+        });
+
+        // Check if result has meaningful content
+        if (
+          aiResult?.generated_content &&
+          aiResult.generated_content.trim().length > 0
+        ) {
+          console.log(`AI generation successful on attempt ${attempt}`);
+          break;
+        }
+
+        console.log(`Attempt ${attempt} failed - empty or no content returned`);
+
+        // If this was the last attempt, throw an error
+        if (attempt === maxRetries) {
+          throw new Error(
+            `AI service returned empty content after ${maxRetries} attempts`
+          );
+        }
+
+        // Add a small delay between retries (exponential backoff)
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (attempt + 1) ** 2)
+        );
+      }
+
+      const endTime = Date.now();
+      const generationTime = (endTime - startTime) / 1000;
+
+      res.json({ ...aiResult, generationTime });
+    } catch (error) {
+      res.status(500).json({
+        message: "AI content generation failed",
+        code: "AI_GENERATION_ERROR",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+// Session management for interactive PRD creation
+export const getSession =
+  (db: sqlite3.Database) => (req: Request, res: Response) => {
+    const { prdId } = req.params;
+
+    db.get(
+      "SELECT * FROM interactive_sessions WHERE prd_id = ? ORDER BY updated_at DESC LIMIT 1",
+      [prdId],
+      (err, row: any) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        if (!row) {
+          res.json(null);
+          return;
+        }
+
+        res.json({
+          id: row.id,
+          prd_id: row.prd_id,
+          conversation_history: JSON.parse(row.conversation_history || "[]"),
+          settings: JSON.parse(row.settings || "{}"),
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+        });
+      }
+    );
+  };
+
+export const saveSession =
+  (db: sqlite3.Database) => (req: Request, res: Response) => {
+    const { prdId } = req.params;
+    const { conversation_history, settings } = req.body;
+    const now = new Date().toISOString();
+
+    // First, try to update existing session
+    db.run(
+      `UPDATE interactive_sessions 
+       SET conversation_history = ?, settings = ?, updated_at = ?
+       WHERE prd_id = ?`,
+      [
+        JSON.stringify(conversation_history),
+        JSON.stringify(settings),
+        now,
+        prdId,
+      ],
+      function (err) {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        // If no rows were updated, create a new session
+        if (this.changes === 0) {
+          const sessionId = require("uuid").v4();
+          db.run(
+            `INSERT INTO interactive_sessions (id, prd_id, conversation_history, settings, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              sessionId,
+              prdId,
+              JSON.stringify(conversation_history),
+              JSON.stringify(settings),
+              now,
+              now,
+            ],
+            (insertErr) => {
+              if (insertErr) {
+                res.status(500).json({ error: insertErr.message });
+                return;
+              }
+              res.json({ success: true, id: sessionId });
+            }
+          );
+        } else {
+          res.json({ success: true });
+        }
+      }
+    );
+  };
+
+export const critiquePrdContent =
+  (db: sqlite3.Database) => async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const critiqueRequest: CritiqueRequest = req.body;
+
+    console.log("=== PRD Critique Request ===");
+    console.log("PRD ID:", id);
+    console.log("Focus areas:", critiqueRequest.focus_areas);
+    console.log("Depth:", critiqueRequest.depth);
+    console.log("Provider:", critiqueRequest.provider?.type);
+    console.log("Model:", critiqueRequest.model);
+    console.log("Has existing content:", !!critiqueRequest.existing_content);
+
+    // Validate required fields
+    if (!critiqueRequest.existing_content) {
+      res.status(400).json({
+        message: "Missing required field: existing_content",
+        code: "VALIDATION_ERROR",
+      });
+      return;
+    }
+
+    try {
+      const startTime = Date.now();
+
+      // Use real AI service for critique
+      const critiqueResult = await aiService.critiquePRD(critiqueRequest);
+
+      const endTime = Date.now();
+      const generationTime = (endTime - startTime) / 1000;
+
+      // Add generation metadata
+      const response = {
+        ...critiqueResult,
+        generation_time: generationTime,
+        model_used: critiqueRequest.model,
+        prd_id: id,
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("PRD critique failed:", error);
+      res.status(500).json({
+        message: "AI critique generation failed",
+        code: "AI_CRITIQUE_ERROR",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
+
+export const testProvider = async (req: Request, res: Response) => {
+  const { provider, model } = req.body;
+
+  console.log("=== Provider Test Request ===");
+  console.log("Provider:", provider?.type);
+  console.log("Model:", model);
+
+  if (!provider || !provider.type) {
+    res.status(400).json({
+      success: false,
+      error: "Provider configuration is required",
+    });
+    return;
+  }
+
+  try {
+    const startTime = Date.now();
+
+    // Use the AI service to test a simple generation
+    const testResult = await aiService.generateContent({
+      prompt:
+        "Test connection. Please respond with exactly: 'Connection successful'",
+      provider,
+      model,
+    });
+
+    const endTime = Date.now();
+    const responseTime = (endTime - startTime) / 1000;
+
+    console.log("Provider test successful:", provider.type);
+    console.log("Response time:", responseTime, "seconds");
+
+    res.json({
+      success: true,
+      provider: provider.type,
+      model: testResult.model_used,
+      responseTime,
+      message: `Successfully connected to ${provider.type}`,
+    });
+  } catch (error) {
+    console.error("Provider test failed:", error);
+    res.status(500).json({
+      success: false,
+      provider: provider.type,
+      model: model || "unknown",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};
+
+export const getOllamaModels = async (req: Request, res: Response) => {
+  const baseURL = req.query.baseURL as string || "http://localhost:11434";
+  
+  console.log("=== Ollama Models Request ===");
+  console.log("Base URL:", baseURL);
+
+  try {
+    const response = await fetch(`${baseURL}/api/tags`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    
+    if (!data || !data.models || !Array.isArray(data.models)) {
+      throw new Error("Invalid response format from Ollama API");
+    }
+    
+    // Transform Ollama models to our LLMModel format
+    const models = data.models.map((model: any) => ({
+      id: model.name,
+      name: model.name,
+      description: `Local model - ${model.name}`,
+      maxTokens: 8192, // Default, could be made configurable
+      supportsStreaming: true,
+      costPer1MTokens: { input: 0, output: 0 }, // Local models are free
+    }));
+    
+    console.log(`Successfully fetched ${models.length} models from Ollama`);
+    res.json(models);
+  } catch (error) {
+    console.error("Failed to fetch Ollama models:", error);
+    res.status(500).json({
+      message: "Failed to fetch models from Ollama",
+      code: "OLLAMA_FETCH_ERROR",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+};

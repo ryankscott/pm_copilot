@@ -9,8 +9,11 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@ai-sdk/ui-utils": "^1.2.11",
     "@floating-ui/react": "^0.27.13",
     "@radix-ui/react-dialog": "^1.1.14",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-select": "^2.2.5",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-tabs": "^1.1.12",
@@ -20,6 +23,7 @@
     "@tanstack/react-query": "^5.81.5",
     "@tanstack/react-router": "^1.122.0",
     "@tanstack/react-router-devtools": "^1.122.0",
+    "ai": "^4.3.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -29,9 +33,11 @@
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
+    "sonner": "^2.0.6",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.10",
     "vibe-rules": "^0.3.50",
+    "vite-plugin-svgr": "^4.3.0",
     "zustand": "^5.0.6"
   },
   "devDependencies": {
