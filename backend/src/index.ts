@@ -14,7 +14,10 @@ import {
   saveSession,
   testProvider,
   getOllamaModels,
+  submitFeedbackHandler,
+  getLangfuseHealth,
 } from "./handlers";
+import { flushLangfuse } from "./langfuse";
 
 const app = express();
 const port = 8080;
@@ -31,13 +34,13 @@ app.use(
   })
 );
 
+// Parse JSON bodies
 app.use(bodyParser.json());
 
-// Provider testing endpoint (doesn't require database)
-app.post("/test-provider", testProvider);
-
-// Ollama models endpoint (doesn't require database)
-app.get("/ollama/models", getOllamaModels);
+// Test endpoint
+app.get("/test", (req, res) => {
+  res.json({ message: "Backend is running!" });
+});
 
 initDB("prds.db")
   .then((db) => {
@@ -53,8 +56,29 @@ initDB("prds.db")
     app.get("/prds/:prdId/session", getSession(db));
     app.post("/prds/:prdId/session", saveSession(db));
 
+    // Provider testing endpoints
+    app.post("/test-provider", testProvider);
+    app.get("/ollama/models", getOllamaModels);
+
+    // Langfuse endpoints
+    app.post("/feedback", submitFeedbackHandler);
+    app.get("/health/langfuse", getLangfuseHealth);
+
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);
+    });
+
+    // Graceful shutdown - flush Langfuse data
+    process.on("SIGINT", async () => {
+      console.log("Shutting down gracefully...");
+      await flushLangfuse();
+      process.exit(0);
+    });
+
+    process.on("SIGTERM", async () => {
+      console.log("Shutting down gracefully...");
+      await flushLangfuse();
+      process.exit(0);
     });
   })
   .catch((err) => {
