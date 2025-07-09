@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   TimerIcon,
   Puzzle,
@@ -6,6 +7,9 @@ import {
   ThumbsDownIcon,
 } from "lucide-react";
 import AIAvatar from "./AIAvatar";
+import { FeedbackModal, type FeedbackData } from "./feedback-modal";
+import { feedbackApi } from "@/lib/api";
+import { toast } from "sonner";
 
 interface MetadataFooterProps {
   inputTokens?: number;
@@ -18,6 +22,11 @@ interface MetadataFooterProps {
   className?: string;
   provider?: string; // Optional provider name
   model?: string; // Optional model name
+  // New props for enhanced feedback
+  langfuseData?: {
+    traceId: string;
+    generationId: string;
+  };
 }
 
 export function MetadataFooter({
@@ -31,80 +40,148 @@ export function MetadataFooter({
   className = "",
   provider = "", // Default to empty string if not provided
   model = "", // Default to empty string if not provided
+  langfuseData,
 }: MetadataFooterProps) {
-  // Helper function to format cost for display
-  const formatCost = (cost: number): string => {
-    if (cost === 0) return "Free";
-    if (cost < 0.001) return "<$0.001";
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [initialFeedbackScore, setInitialFeedbackScore] = useState<number>(0);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  const formatTime = (seconds: number) => {
+    if (seconds < 1) {
+      return `${Math.round(seconds * 1000)}ms`;
+    }
+    return `${seconds.toFixed(1)}s`;
+  };
+
+  const formatCost = (cost: number) => {
+    if (cost < 0.01) {
+      return `$${(cost * 1000).toFixed(2)}k`;
+    }
     return `$${cost.toFixed(4)}`;
   };
 
-  // Helper function to format time for display
-  const formatTime = (timeInSeconds: number): string => {
-    if (timeInSeconds < 1) return `${Math.round(timeInSeconds * 1000)}ms`;
-    return `${timeInSeconds.toFixed(2)}s`;
+  const handleFeedbackClick = (score: number) => {
+    if (langfuseData) {
+      // Use enhanced feedback modal
+      setInitialFeedbackScore(score);
+      setFeedbackModalOpen(true);
+    } else {
+      // Fallback to simple callback
+      if (score === 1) {
+        onThumbsUp?.();
+      } else {
+        onThumbsDown?.();
+      }
+    }
   };
 
-  // Don't render if no metadata to show
-  if (
-    !inputTokens &&
-    !outputTokens &&
-    !generationTime &&
-    !cost &&
-    !showFeedback
-  ) {
-    return null;
-  }
+  const handleFeedbackSubmit = async (feedback: FeedbackData) => {
+    try {
+      await feedbackApi.submit({
+        traceId: feedback.traceId,
+        generationId: feedback.generationId,
+        score: feedback.score,
+        comment: feedback.comment,
+      });
+
+      setFeedbackSubmitted(true);
+
+      // Show success toast
+      toast.success("Thank you for your feedback!", {
+        description: "Your feedback helps us improve the AI responses.",
+      });
+
+      // Call legacy callbacks if provided
+      if (feedback.score === 1) {
+        onThumbsUp?.();
+      } else {
+        onThumbsDown?.();
+      }
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+      toast.error("Failed to submit feedback", {
+        description: "Please try again later.",
+      });
+      throw error; // Re-throw to let the modal handle the error state
+    }
+  };
 
   return (
-    <div className={`mt-3 pt-3 border-t border-border ${className}`}>
-      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground justify-center">
-        {/* AI model icon */}
-        {<AIAvatar provider={provider} model={model} />}
-        {/* Token usage */}
-        {(inputTokens || outputTokens) && (
-          <div className="flex items-center gap-1">
-            <Puzzle className="w-4 h-4" />
-            {inputTokens || 0} in + {outputTokens || 0} out
-          </div>
-        )}
+    <>
+      <div className={`mt-3 pt-3 border-t border-border ${className}`}>
+        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground justify-center">
+          {/* AI model icon */}
+          <AIAvatar provider={provider} model={model} />
 
-        {/* Generation time */}
-        {generationTime && (
-          <div className="flex items-center gap-1">
-            <TimerIcon className="w-4 h-4" />
-            {formatTime(generationTime)}
-          </div>
-        )}
+          {/* Token usage */}
+          {(inputTokens || outputTokens) && (
+            <div className="flex items-center gap-1">
+              <Puzzle className="w-4 h-4" />
+              {inputTokens || 0} in + {outputTokens || 0} out
+            </div>
+          )}
 
-        {/* Cost */}
-        {cost !== undefined && cost > 0 && (
-          <div className="flex items-center gap-1">
-            <CircleDollarSign className="w-4 h-4" />
-            {formatCost(cost)}
-          </div>
-        )}
+          {/* Generation time */}
+          {generationTime && (
+            <div className="flex items-center gap-1">
+              <TimerIcon className="w-4 h-4" />
+              {formatTime(generationTime)}
+            </div>
+          )}
 
-        {/* Feedback buttons */}
-        {showFeedback && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onThumbsUp}
-              className="hover:text-green-500 transition-colors cursor-pointer"
-              aria-label="Thumbs up"
-            >
-              <ThumbsUpIcon className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onThumbsDown}
-              className="hover:text-red-500 transition-colors cursor-pointer"
-              aria-label="Thumbs down"
-            >
-              <ThumbsDownIcon className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+          {/* Cost */}
+          {cost !== undefined && cost > 0 && (
+            <div className="flex items-center gap-1">
+              <CircleDollarSign className="w-4 h-4" />
+              {formatCost(cost)}
+            </div>
+          )}
+
+          {/* Enhanced Feedback buttons */}
+          {showFeedback && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handleFeedbackClick(1)}
+                className={`hover:text-green-500 transition-colors cursor-pointer ${
+                  feedbackSubmitted ? "text-green-500" : ""
+                }`}
+                aria-label="Thumbs up"
+                title={langfuseData ? "Provide detailed feedback" : "Thumbs up"}
+              >
+                <ThumbsUpIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleFeedbackClick(-1)}
+                className={`hover:text-red-500 transition-colors cursor-pointer ${
+                  feedbackSubmitted ? "text-red-500" : ""
+                }`}
+                aria-label="Thumbs down"
+                title={
+                  langfuseData ? "Provide detailed feedback" : "Thumbs down"
+                }
+              >
+                <ThumbsDownIcon className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Enhanced Feedback Modal */}
+      {langfuseData && (
+        <FeedbackModal
+          isOpen={feedbackModalOpen}
+          onClose={() => setFeedbackModalOpen(false)}
+          onSubmit={handleFeedbackSubmit}
+          feedbackData={{
+            traceId: langfuseData.traceId,
+            generationId: langfuseData.generationId,
+          }}
+          initialScore={initialFeedbackScore}
+          title="How was this response?"
+          description="Your feedback helps us improve the AI responses and provide better results."
+        />
+      )}
+    </>
   );
 }

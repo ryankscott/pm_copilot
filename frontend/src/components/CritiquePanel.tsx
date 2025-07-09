@@ -286,6 +286,7 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
                   showFeedback={true}
                   provider={getCurrentProvider().name}
                   model={settings.selectedModel}
+                  langfuseData={critiqueResult.langfuseData}
                   className="mt-6 pt-4 border-t border-border"
                 />
               </div>

@@ -147,7 +147,8 @@ const createAssistantMessage = (
   outputTokens?: number,
   generationTime?: number,
   cost?: number,
-  modelUsed?: string
+  modelUsed?: string,
+  langfuseData?: { traceId: string; generationId: string }
 ): ConversationMessage => ({
   role: "assistant",
   content,
@@ -157,6 +158,7 @@ const createAssistantMessage = (
   ...(generationTime && { total_time: generationTime }),
   ...(cost && { cost }),
   ...(modelUsed && { model_used: modelUsed }),
+  ...(langfuseData && { langfuseData }),
 });
 
 const createErrorMessage = (isStart: boolean): ConversationMessage => ({
@@ -301,7 +303,8 @@ export function InteractivePRDPanel({
         result.output_tokens,
         result.generation_time,
         cost,
-        settings.selectedModel
+        settings.selectedModel,
+        result.langfuseData
       );
 
       setInteractiveMessages([...newMessages, assistantMessage]);
@@ -712,9 +715,10 @@ function MessageComponent({
             outputTokens={message.output_tokens}
             generationTime={message.total_time}
             cost={cost > 0 ? cost : undefined}
-            showFeedback={false}
+            showFeedback={true}
             provider={getCurrentProvider().name}
             model={selectedModel}
+            langfuseData={message.langfuseData}
           />
         )}
 

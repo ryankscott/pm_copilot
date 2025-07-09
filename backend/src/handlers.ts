@@ -553,3 +553,290 @@ export const getOllamaModels = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Enhanced feedback submission with analytics
+export const submitFeedbackEnhanced = async (req: Request, res: Response) => {
+  try {
+    const { traceId, generationId, score, comment, rating, categories } =
+      req.body;
+
+    if (!traceId || !generationId || score === undefined) {
+      return res.status(400).json({
+        error: "Missing required fields: traceId, generationId, score",
+      });
+    }
+
+    // Validate score
+    if (score !== 1 && score !== -1) {
+      return res.status(400).json({
+        error: "Score must be 1 (positive) or -1 (negative)",
+      });
+    }
+
+    // Validate rating if provided
+    if (rating !== undefined && (rating < 1 || rating > 5)) {
+      return res.status(400).json({
+        error: "Rating must be between 1 and 5",
+      });
+    }
+
+    // Track feedback submission event
+    await trackCustomEvent("feedback_submitted", {
+      traceId,
+      generationId,
+      score,
+      rating,
+      comment: comment ? "provided" : "none",
+      categories: categories || [],
+      timestamp: new Date().toISOString(),
+    });
+
+    // Submit to Langfuse
+    await submitFeedback({
+      traceId,
+      generationId,
+      score,
+      comment,
+    });
+
+    // Store in database for analytics
+    await storeFeedbackInDatabase({
+      traceId,
+      generationId,
+      score,
+      comment,
+      rating,
+      categories,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Track performance metrics
+    await trackPerformanceMetric(
+      "feedback_response_time",
+      Date.now(),
+      "milliseconds",
+      {
+        traceId,
+        generationId,
+      }
+    );
+
+    res.json({
+      success: true,
+      message: "Feedback submitted successfully",
+      analytics: {
+        traceId,
+        generationId,
+        score,
+        rating,
+        categoriesCount: categories?.length || 0,
+      },
+    });
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+
+    // Track error
+    if (req.body.traceId && req.body.generationId) {
+      await trackCustomEvent("feedback_error", {
+        traceId: req.body.traceId,
+        generationId: req.body.generationId,
+        error: (error as Error).message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    res.status(500).json({
+      error: "Failed to submit feedback",
+      details: (error as Error).message,
+    });
+  }
+};
+
+// New: Get feedback history for analytics
+export const getFeedbackHistory = async (req: Request, res: Response) => {
+  try {
+    const { limit = 10, offset = 0, userId } = req.query;
+
+    const history = await getFeedbackHistoryFromDatabase({
+      limit: parseInt(limit as string),
+      offset: parseInt(offset as string),
+      userId: userId as string,
+    });
+
+    res.json({
+      success: true,
+      data: history,
+      pagination: {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        total: history.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching feedback history:", error);
+    res.status(500).json({
+      error: "Failed to fetch feedback history",
+      details: (error as Error).message,
+    });
+  }
+};
+
+// New: Get feedback analytics/statistics
+export const getFeedbackAnalytics = async (req: Request, res: Response) => {
+  try {
+    const { userId, timeRange = "30d" } = req.query;
+
+    const analytics = await getFeedbackAnalyticsFromDatabase({
+      userId: userId as string,
+      timeRange: timeRange as string,
+    });
+
+    res.json({
+      success: true,
+      data: analytics,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error fetching feedback analytics:", error);
+    res.status(500).json({
+      error: "Failed to fetch feedback analytics",
+      details: (error as Error).message,
+    });
+  }
+};
+
+// New: Get feedback trends over time
+export const getFeedbackTrends = async (req: Request, res: Response) => {
+  try {
+    const { userId, period = "daily", timeRange = "30d" } = req.query;
+
+    const trends = await getFeedbackTrendsFromDatabase({
+      userId: userId as string,
+      period: period as string,
+      timeRange: timeRange as string,
+    });
+
+    res.json({
+      success: true,
+      data: trends,
+      period,
+      timeRange,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error fetching feedback trends:", error);
+    res.status(500).json({
+      error: "Failed to fetch feedback trends",
+      details: (error as Error).message,
+    });
+  }
+};
+
+// Helper function to store feedback in database
+async function storeFeedbackInDatabase(feedback: {
+  traceId: string;
+  generationId: string;
+  score: number;
+  comment?: string;
+  rating?: number;
+  categories?: string[];
+  timestamp: string;
+}) {
+  // This would connect to your database
+  // For now, we'll just log it
+  console.log("Storing feedback in database:", feedback);
+
+  // In a real implementation, you would:
+  // 1. Connect to your database
+  // 2. Insert the feedback record
+  // 3. Update user analytics
+  // 4. Trigger any necessary notifications
+}
+
+// Helper function to get feedback history from database
+async function getFeedbackHistoryFromDatabase(params: {
+  limit: number;
+  offset: number;
+  userId?: string;
+}) {
+  // Mock data for now - replace with actual database query
+  const mockHistory = [
+    {
+      id: "1",
+      traceId: "trace_123",
+      generationId: "gen_456",
+      score: 1,
+      rating: 5,
+      comment: "Great response! Very comprehensive and well-structured.",
+      categories: ["completeness", "clarity", "helpfulness"],
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+      modelUsed: "gpt-4",
+      provider: "OpenAI",
+      responsePreview:
+        "# PRD for Mobile Water Tracking App\n\n## Overview\nThis document outlines...",
+    },
+    {
+      id: "2",
+      traceId: "trace_789",
+      generationId: "gen_101",
+      score: -1,
+      rating: 2,
+      comment: "Missing technical details and implementation considerations.",
+      categories: ["technical"],
+      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      modelUsed: "llama3.2",
+      provider: "Ollama",
+      responsePreview:
+        "## Product Requirements\n\nThe app should allow users to...",
+    },
+  ];
+
+  return mockHistory.slice(params.offset, params.offset + params.limit);
+}
+
+// Helper function to get feedback analytics from database
+async function getFeedbackAnalyticsFromDatabase(params: {
+  userId?: string;
+  timeRange: string;
+}) {
+  // Mock analytics data - replace with actual database query
+  return {
+    totalFeedback: 15,
+    positiveCount: 12,
+    negativeCount: 3,
+    positiveRate: 0.8,
+    averageRating: 4.2,
+    topCategories: [
+      { category: "clarity", count: 8 },
+      { category: "completeness", count: 6 },
+      { category: "helpfulness", count: 5 },
+    ],
+    recentTrend: "up",
+    timeRange: params.timeRange,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+// Helper function to get feedback trends from database
+async function getFeedbackTrendsFromDatabase(params: {
+  userId?: string;
+  period: string;
+  timeRange: string;
+}) {
+  // Mock trends data - replace with actual database query
+  const now = new Date();
+  const trends = [];
+
+  for (let i = 0; i < 30; i++) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    trends.push({
+      date: date.toISOString().split("T")[0],
+      positive: Math.floor(Math.random() * 5) + 1,
+      negative: Math.floor(Math.random() * 2),
+      total: Math.floor(Math.random() * 7) + 1,
+      averageRating: 3.5 + Math.random() * 1.5,
+    });
+  }
+
+  return trends.reverse();
+}

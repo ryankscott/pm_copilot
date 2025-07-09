@@ -150,11 +150,168 @@ export const prdApi = {
 // Feedback API
 export const feedbackApi = {
   // Submit feedback for a generation
-  submit: (feedback: FeedbackRequest): Promise<FeedbackResponse> =>
-    fetchApi<FeedbackResponse>("/feedback", {
+  submit: (
+    feedback: FeedbackRequest & {
+      rating?: number;
+      categories?: string[];
+    }
+  ): Promise<
+    FeedbackResponse & {
+      analytics?: {
+        traceId: string;
+        generationId: string;
+        score: number;
+        rating?: number;
+        categoriesCount: number;
+      };
+    }
+  > =>
+    fetchApi<
+      FeedbackResponse & {
+        analytics?: {
+          traceId: string;
+          generationId: string;
+          score: number;
+          rating?: number;
+          categoriesCount: number;
+        };
+      }
+    >("/api/feedback/enhanced", {
       method: "POST",
       body: JSON.stringify(feedback),
     }),
+
+  // Get feedback history
+  getHistory: (params?: {
+    limit?: number;
+    offset?: number;
+    userId?: string;
+  }): Promise<{
+    success: boolean;
+    data: Array<{
+      id: string;
+      traceId: string;
+      generationId: string;
+      score: number;
+      rating?: number;
+      comment?: string;
+      categories?: string[];
+      timestamp: string;
+      modelUsed?: string;
+      provider?: string;
+      responsePreview?: string;
+    }>;
+    pagination: {
+      limit: number;
+      offset: number;
+      total: number;
+    };
+  }> => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.append("limit", params.limit.toString());
+    if (params?.offset) searchParams.append("offset", params.offset.toString());
+    if (params?.userId) searchParams.append("userId", params.userId);
+
+    return fetchApi<{
+      success: boolean;
+      data: Array<{
+        id: string;
+        traceId: string;
+        generationId: string;
+        score: number;
+        rating?: number;
+        comment?: string;
+        categories?: string[];
+        timestamp: string;
+        modelUsed?: string;
+        provider?: string;
+        responsePreview?: string;
+      }>;
+      pagination: {
+        limit: number;
+        offset: number;
+        total: number;
+      };
+    }>(`/api/feedback/history?${searchParams}`);
+  },
+
+  // Get feedback analytics
+  getAnalytics: (params?: {
+    userId?: string;
+    timeRange?: string;
+  }): Promise<{
+    success: boolean;
+    data: {
+      totalFeedback: number;
+      positiveCount: number;
+      negativeCount: number;
+      positiveRate: number;
+      averageRating: number;
+      topCategories: Array<{ category: string; count: number }>;
+      recentTrend: "up" | "down" | "stable";
+      timeRange: string;
+      lastUpdated: string;
+    };
+    generatedAt: string;
+  }> => {
+    const searchParams = new URLSearchParams();
+    if (params?.userId) searchParams.append("userId", params.userId);
+    if (params?.timeRange) searchParams.append("timeRange", params.timeRange);
+
+    return fetchApi<{
+      success: boolean;
+      data: {
+        totalFeedback: number;
+        positiveCount: number;
+        negativeCount: number;
+        positiveRate: number;
+        averageRating: number;
+        topCategories: Array<{ category: string; count: number }>;
+        recentTrend: "up" | "down" | "stable";
+        timeRange: string;
+        lastUpdated: string;
+      };
+      generatedAt: string;
+    }>(`/api/feedback/analytics?${searchParams}`);
+  },
+
+  // Get feedback trends
+  getTrends: (params?: {
+    userId?: string;
+    period?: string;
+    timeRange?: string;
+  }): Promise<{
+    success: boolean;
+    data: Array<{
+      date: string;
+      positive: number;
+      negative: number;
+      total: number;
+      averageRating: number;
+    }>;
+    period: string;
+    timeRange: string;
+    generatedAt: string;
+  }> => {
+    const searchParams = new URLSearchParams();
+    if (params?.userId) searchParams.append("userId", params.userId);
+    if (params?.period) searchParams.append("period", params.period);
+    if (params?.timeRange) searchParams.append("timeRange", params.timeRange);
+
+    return fetchApi<{
+      success: boolean;
+      data: Array<{
+        date: string;
+        positive: number;
+        negative: number;
+        total: number;
+        averageRating: number;
+      }>;
+      period: string;
+      timeRange: string;
+      generatedAt: string;
+    }>(`/api/feedback/trends?${searchParams}`);
+  },
 };
 
 // Provider testing API
