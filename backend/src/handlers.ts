@@ -561,23 +561,26 @@ export const submitFeedbackEnhanced = async (req: Request, res: Response) => {
       req.body;
 
     if (!traceId || !generationId || score === undefined) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Missing required fields: traceId, generationId, score",
       });
+      return;
     }
 
     // Validate score
     if (score !== 1 && score !== -1) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Score must be 1 (positive) or -1 (negative)",
       });
+      return;
     }
 
     // Validate rating if provided
     if (rating !== undefined && (rating < 1 || rating > 5)) {
-      return res.status(400).json({
+      res.status(400).json({
         error: "Rating must be between 1 and 5",
       });
+      return;
     }
 
     // Track feedback submission event
