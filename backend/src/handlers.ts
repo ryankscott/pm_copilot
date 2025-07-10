@@ -281,6 +281,7 @@ export const critiquePrdContent =
     const { id } = req.params;
     const critiqueRequest: CritiqueRequest = req.body;
 
+    // TODO: Remove these headers
     // Extract user information from headers or body
     const userId = (req.headers["x-user-id"] as string) || "anonymous";
     const sessionId =
