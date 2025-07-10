@@ -2,12 +2,10 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
 import { FileText, Eye, Edit, Loader2, CheckCircle, Bot } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import type { PRD } from "../types";
 import { AIAssistantPanel } from "./AIAssistantPanel";
 import { EditableHeader } from "./EditableHeader";
+import { TiptapEditor } from "./TiptapEditor";
 
 interface PRDEditorProps {
   prd: PRD;
@@ -149,21 +147,16 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
         <div className="flex-1 overflow-hidden w-full">
           <div className="h-full overflow-auto bg-background">
             {viewMode === "edit" ? (
-              <textarea
-                value={content}
-                onChange={(e) => handleContentChange(e.target.value)}
-                className="w-full h-full resize-none border-0 p-4 focus:ring-0 focus:outline-none bg-background text-foreground"
-                placeholder="Start writing your Product Requirements Document..."
+              <TiptapEditor
+                content={content}
+                onChange={handleContentChange}
+                placeholder="Start writing your Product Requirements Document... (You can use markdown shortcuts like **bold**, *italic*, # headings, - lists)"
+                className="h-full border-0"
               />
             ) : (
               <div className="p-4 prose prose-gray dark:prose-invert max-w-none">
                 {content ? (
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeHighlight]}
-                  >
-                    {content}
-                  </ReactMarkdown>
+                  <div dangerouslySetInnerHTML={{ __html: content }} />
                 ) : (
                   <div className="text-muted-foreground italic">
                     No content to preview. Switch to Edit mode to start writing.

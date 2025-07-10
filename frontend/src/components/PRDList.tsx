@@ -35,7 +35,8 @@ export function PRDList() {
     try {
       const newPrd = await createPrd.mutateAsync({
         title: "New PRD",
-        content: "# New PRD\n\nStart writing your requirements here...",
+        content:
+          "<h1>New PRD</h1><p>Start writing your requirements here...</p>",
       });
 
       // Navigate to the new PRD
