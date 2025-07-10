@@ -69,7 +69,7 @@ Once you feel you have gathered sufficient details, create a structured PRD that
 
 After gathering sufficient information, you MUST:
 1. Create a complete PRD document based on the information provided
-2. Wrap the PRD content in <prd> tags e.g. <prd> PRD Content </prd>
+2. Wrap the PRD content in <prd> </prd> e.g. <prd> PRD Content </prd>
 4. Ensure the PRD is logically structured and concise so stakeholders can readily understand the product's vision and requirements
 
 Use markdown formatting for readability, including:
