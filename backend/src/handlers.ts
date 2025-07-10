@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import sqlite3 from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
-import { PRD, GenerateContentRequest, CritiqueRequest } from "./generated";
+import { GenerateContentRequest, CritiqueRequest } from "./generated";
 import { aiService } from "./aiService";
 import {
   submitFeedback,
@@ -125,6 +125,7 @@ export const generatePrdContent =
     const { id } = req.params;
     const generateRequest: GenerateContentRequest = req.body;
 
+    // TODO: Remove the userId and sessionID and the logging
     // Extract user information from headers or body (you can customize this)
     const userId = (req.headers["x-user-id"] as string) || "anonymous";
     const sessionId =

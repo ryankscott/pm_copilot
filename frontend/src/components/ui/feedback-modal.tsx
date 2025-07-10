@@ -11,15 +11,12 @@ import {
   DialogTitle,
 } from "./dialog";
 import {
-  ThumbsUpIcon,
-  ThumbsDownIcon,
   StarIcon,
   MessageSquareIcon,
   CheckCircleIcon,
   XCircleIcon,
   Loader2,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export interface FeedbackData {
   traceId: string;
@@ -85,8 +82,7 @@ export function FeedbackModal({
   title = "Provide Feedback",
   description = "Help us improve by sharing your thoughts on this response.",
 }: FeedbackModalProps) {
-  const [score, setScore] = useState<number>(initialScore || 0);
-  const [rating, setRating] = useState<number>(0);
+  const [rating, setRating] = useState<number>(initialScore || 0);
   const [comment, setComment] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,28 +90,6 @@ export function FeedbackModal({
     "idle" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState<string>("");
-
-  const handleScoreChange = (newScore: number) => {
-    setScore(newScore);
-    // Auto-set rating based on score
-    if (newScore === 1) {
-      setRating(Math.max(rating, 4)); // Thumbs up suggests good rating
-    } else if (newScore === -1) {
-      setRating(Math.min(rating || 3, 2)); // Thumbs down suggests lower rating
-    }
-  };
-
-  const handleRatingChange = (newRating: number) => {
-    setRating(newRating);
-    // Auto-set score based on rating
-    if (newRating >= 4) {
-      setScore(1);
-    } else if (newRating <= 2) {
-      setScore(-1);
-    } else {
-      setScore(0);
-    }
-  };
 
   const toggleCategory = (categoryId: string) => {
     setSelectedCategories((prev) =>
@@ -126,8 +100,8 @@ export function FeedbackModal({
   };
 
   const handleSubmit = async () => {
-    if (score === 0) {
-      setErrorMessage("Please select thumbs up or thumbs down");
+    if (rating === 0) {
+      setErrorMessage("Please select a rating");
       return;
     }
 
@@ -138,9 +112,9 @@ export function FeedbackModal({
     try {
       await onSubmit({
         ...feedbackData,
-        score,
+        score: rating, // Use the star rating as the score
         comment: comment.trim() || undefined,
-        rating: rating || undefined,
+        rating: rating,
         categories:
           selectedCategories.length > 0 ? selectedCategories : undefined,
       });
@@ -163,8 +137,7 @@ export function FeedbackModal({
   };
 
   const resetForm = () => {
-    setScore(initialScore || 0);
-    setRating(0);
+    setRating(initialScore || 0);
     setComment("");
     setSelectedCategories([]);
     setSubmitStatus("idle");
@@ -190,55 +163,21 @@ export function FeedbackModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Thumbs Up/Down */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Overall Rating</Label>
-            <div className="flex items-center gap-4">
-              <Button
-                variant={score === 1 ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleScoreChange(1)}
-                className={cn(
-                  "flex items-center gap-2",
-                  score === 1 && "bg-green-600 hover:bg-green-700"
-                )}
-              >
-                <ThumbsUpIcon className="w-4 h-4" />
-                Helpful
-              </Button>
-              <Button
-                variant={score === -1 ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleScoreChange(-1)}
-                className={cn(
-                  "flex items-center gap-2",
-                  score === -1 && "bg-red-600 hover:bg-red-700"
-                )}
-              >
-                <ThumbsDownIcon className="w-4 h-4" />
-                Not Helpful
-              </Button>
-            </div>
-          </div>
-
           {/* Star Rating */}
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              Detailed Rating (Optional)
-            </Label>
+            <Label className="text-sm font-medium">Rating</Label>
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
-                  key={star}
                   type="button"
-                  onClick={() => handleRatingChange(star)}
-                  className={cn(
-                    "p-1 rounded transition-colors",
-                    "hover:bg-muted",
-                    rating >= star ? "text-yellow-500" : "text-muted-foreground"
-                  )}
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className={`p-1 rounded transition-colors hover:bg-`}
                 >
-                  <StarIcon className="w-5 h-5 fill-current" />
+                  <StarIcon
+                    className={`w-6 h-6 transition-colors hover:fill-black hover:text-black ${rating >= star ? "fill-black text-black" : "fill-transparent text-black opacity-30"}
+                    `}
+                  />
                 </button>
               ))}
               {rating > 0 && (
@@ -260,12 +199,11 @@ export function FeedbackModal({
                   key={category.id}
                   type="button"
                   onClick={() => toggleCategory(category.id)}
-                  className={cn(
-                    "p-2 text-left rounded-lg border text-sm transition-colors",
+                  className={`p-2 text-left rounded-lg border text-sm transition-colors ${
                     selectedCategories.includes(category.id)
                       ? "bg-primary text-primary-foreground border-primary"
                       : "bg-background hover:bg-muted border-border"
-                  )}
+                  }`}
                   title={category.description}
                 >
                   {category.label}
@@ -316,7 +254,7 @@ export function FeedbackModal({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || score === 0}
+            disabled={isSubmitting || rating === 0}
             className="min-w-[100px]"
           >
             {isSubmitting ? (

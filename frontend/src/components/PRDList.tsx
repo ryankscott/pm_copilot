@@ -46,8 +46,12 @@ export function PRDList() {
       });
 
       success("PRD Created", "Successfully created PRD");
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Failed to create PRD:", error);
+      errorToast(
+        "Failed to create PRD",
+        (error as Error)?.message || "Please try again later."
+      );
     }
   };
 

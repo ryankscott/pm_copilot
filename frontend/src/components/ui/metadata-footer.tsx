@@ -10,6 +10,7 @@ import AIAvatar from "./AIAvatar";
 import { FeedbackModal, type FeedbackData } from "./feedback-modal";
 import { feedbackApi } from "@/lib/api";
 import { toast } from "sonner";
+import { Button } from "./button";
 
 interface MetadataFooterProps {
   inputTokens?: number;
@@ -44,7 +45,6 @@ export function MetadataFooter({
 }: MetadataFooterProps) {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [initialFeedbackScore, setInitialFeedbackScore] = useState<number>(0);
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   const formatTime = (seconds: number) => {
     if (seconds < 1) {
@@ -62,8 +62,10 @@ export function MetadataFooter({
 
   const handleFeedbackClick = (score: number) => {
     if (langfuseData) {
-      // Use enhanced feedback modal
-      setInitialFeedbackScore(score);
+      // Convert thumbs up/down to star rating
+      // Thumbs up = 5 stars, thumbs down = 1 star
+      const starRating = score === 1 ? 5 : 1;
+      setInitialFeedbackScore(starRating);
       setFeedbackModalOpen(true);
     } else {
       // Fallback to simple callback
@@ -83,8 +85,6 @@ export function MetadataFooter({
         score: feedback.score,
         comment: feedback.comment,
       });
-
-      setFeedbackSubmitted(true);
 
       // Show success toast
       toast.success("Thank you for your feedback!", {
@@ -109,7 +109,7 @@ export function MetadataFooter({
   return (
     <>
       <div className={`mt-3 pt-3 border-t border-border ${className}`}>
-        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground justify-center">
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground justify-center">
           {/* AI model icon */}
           <AIAvatar provider={provider} model={model} />
 
@@ -139,29 +139,29 @@ export function MetadataFooter({
 
           {/* Enhanced Feedback buttons */}
           {showFeedback && (
-            <div className="flex items-center gap-2">
-              <button
+            <div className="flex items-center gap-0.5">
+              <Button
+                size="icon"
+                variant={"ghost"}
                 onClick={() => handleFeedbackClick(1)}
-                className={`hover:text-green-500 transition-colors cursor-pointer ${
-                  feedbackSubmitted ? "text-green-500" : ""
-                }`}
                 aria-label="Thumbs up"
+                className="p-1 m-0"
                 title={langfuseData ? "Provide detailed feedback" : "Thumbs up"}
               >
                 <ThumbsUpIcon className="w-4 h-4" />
-              </button>
-              <button
+              </Button>
+              <Button
+                size="icon"
                 onClick={() => handleFeedbackClick(-1)}
-                className={`hover:text-red-500 transition-colors cursor-pointer ${
-                  feedbackSubmitted ? "text-red-500" : ""
-                }`}
+                variant={"ghost"}
                 aria-label="Thumbs down"
+                className="p-1 m-0"
                 title={
                   langfuseData ? "Provide detailed feedback" : "Thumbs down"
                 }
               >
                 <ThumbsDownIcon className="w-4 h-4" />
-              </button>
+              </Button>
             </div>
           )}
         </div>
