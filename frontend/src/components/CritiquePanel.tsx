@@ -105,8 +105,7 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
             <div className="py-4 border-b-1">
               <MessageSquare className="w-8 h-8 mx-auto mb-2" />
               <p>
-                Configure your critique settings and click "Generate PRD
-                Critique"
+                Configure your critique settings and click "Generate PRD Critique"
               </p>
               <p className="text-sm mt-1">
                 I'll analyze your PRD and provide detailed feedback and
