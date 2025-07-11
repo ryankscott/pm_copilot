@@ -29,7 +29,7 @@ async function fetchApi<T>(
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
-      ...options.headers,
+      ...(options.headers || {}),
     },
     ...options,
   });
