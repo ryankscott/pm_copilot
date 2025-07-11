@@ -16,10 +16,7 @@ export interface ConversationMessage {
   cost?: number;
   model_used?: string;
   has_error?: boolean;
-  langfuseData?: {
-    traceId: string;
-    generationId: string;
-  };
+  langfuseData?: LangfuseData;
 }
 
 export interface GenerateContentRequest {
