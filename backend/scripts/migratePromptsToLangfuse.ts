@@ -2,21 +2,35 @@
 // Before running, ensure you have set up your Langfuse API keys and base URL (if applicable)
 // in your .env file. Refer to backend/.env.example for details on the required variables.
 
-import { Langfuse, LangfusePromptClient } from "langfuse";
+import { Langfuse } from "langfuse";
 import "dotenv/config";
 
-// Initialize Langfuse client
-const langfuse = new Langfuse({
-  secretKey: process.env.LANGFUSE_SECRET_KEY!,
-  publicKey: process.env.LANGFUSE_PUBLIC_KEY!,
-  baseUrl: process.env.LANGFUSE_BASEURL || "https://cloud.langfuse.com",
-});
+// Initialize Langfuse client specifically for the script
+const initializeClientForScript = () => {
+  const secretKey = process.env.LANGFUSE_SECRET_KEY;
+  const publicKey = process.env.LANGFUSE_PUBLIC_KEY;
+  const baseUrl = process.env.LANGFUSE_BASEURL;
+
+  if (!secretKey || !publicKey) {
+    console.error(
+      "Langfuse secret or public key not found in environment variables. Please set them in your .env file."
+    );
+    process.exit(1);
+  }
+
+  return new Langfuse({
+    secretKey,
+    publicKey,
+    baseUrl: baseUrl || "https://cloud.langfuse.com",
+  });
+};
+
+const langfuse = initializeClientForScript();
 
 const promptsToCreate = [
   {
     name: "interactive-prd-system-prompt",
-    type: "text", // Langfuse prompt type, 'text' or 'chat'
-    // The main prompt content. Variables are denoted by {{variableName}}
+    type: "text",
     prompt: `
 You are an experienced Product Manager with expertise in creating detailed Product Requirements Documents (PRDs).
 I have a very informal or vague product idea. Your task is to ask me clarifying questions in batches
@@ -88,12 +102,11 @@ Begin by introducing yourself and asking your first batch of questions about my 
 
 - Provide {{length}} level of detail{{toneInstructions}}
 `,
-    // Config can store model parameters or other metadata, not strictly enforced by Langfuse
     config: {
-      model: "default-model-for-this-prompt", // Example config
+      model: "default-model-for-this-prompt",
       temperature: 0.7,
     },
-    labels: ["production"], // Default label
+    labels: ["production"],
   },
   {
     name: "prd-critique-system-prompt",
@@ -235,20 +248,13 @@ Provide a comprehensive critique focusing on:
 async function migratePrompts() {
   console.log("Starting prompt migration to Langfuse...");
 
-  if (!process.env.LANGFUSE_SECRET_KEY || !process.env.LANGFUSE_PUBLIC_KEY) {
-    console.error(
-      "Langfuse secret or public key not found in environment variables. Please set them in your .env file."
-    );
-    process.exit(1);
-  }
-
   for (const promptData of promptsToCreate) {
     try {
-      // Check if a prompt with this name already exists to avoid errors if script is run multiple times.
-      // Langfuse createPrompt will add a new version if it exists, or create if it doesn't.
-      // So, direct creation is fine. If specific version control is needed, one might fetch first.
-      await langfuse.createPrompt(promptData as any); // Using 'as any' because of the type field discrepancy.
-                                                    // Langfuse SDK expects 'text' | 'chat', our definition is compatible.
+      // Langfuse createPrompt will add a new version if a prompt with the same name exists,
+      // or create a new one if it doesn't.
+      // The 'type' field in Langfuse SDK for createPrompt is 'text' | 'chat'.
+      // Our promptData matches this structure.
+      await langfuse.createPrompt(promptData as any);
       console.log(`Successfully created or versioned prompt: "${promptData.name}"`);
     } catch (error) {
       console.error(`Failed to create or version prompt "${promptData.name}":`, error);
@@ -256,23 +262,27 @@ async function migratePrompts() {
   }
 
   console.log("Prompt migration finished.");
-  await langfuse.shutdownAsync(); // Ensure all data is sent
+  // Ensure all data is sent before exiting the script
+  await langfuse.shutdownAsync();
 }
 
 migratePrompts().catch(async (e) => {
   console.error("Unhandled error during prompt migration:", e);
+  // Attempt to shutdown Langfuse even if an error occurs
   await langfuse.shutdownAsync();
   process.exit(1);
 });
 
 // To run this script:
 // 1. Ensure your .env file has LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, and optionally LANGFUSE_BASEURL.
-// 2. Execute: npx ts-node backend/scripts/migratePromptsToLangfuse.ts
-// (You might need to install ts-node and typescript globally or as dev dependencies: pnpm add -D ts-node typescript)
-// Or add it as a script in package.json
-// "scripts": {
-//   ...
-//   "migrate-prompts": "ts-node ./src/scripts/migratePromptsToLangfuse.ts"
-//   ...
-// }
-// then run: pnpm migrate-prompts (from the 'backend' directory)
+//    Refer to backend/.env.example for details.
+// 2. From the 'backend' directory, execute:
+//    pnpm exec ts-node ./scripts/migratePromptsToLangfuse.ts
+//    (If you haven't installed ts-node and typescript as dev dependencies: pnpm add -D ts-node typescript)
+// 3. Alternatively, add a script to your backend/package.json:
+//    "scripts": {
+//      ...
+//      "migrate-prompts": "ts-node ./scripts/migratePromptsToLangfuse.ts"
+//      ...
+//    }
+//    And then run: pnpm run migrate-prompts (from the 'backend' directory)

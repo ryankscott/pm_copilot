@@ -4,8 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import { generateText, CoreMessage } from "ai";
 import "dotenv/config";
-import { getLangfuseClient } from "./langfuseService"; // Import Langfuse client
-// Updated imports from prompts.ts - these will be new functions
+// Updated imports from prompts.ts - these will be new async functions
 import {
   getInteractiveSystemPrompt,
   getCritiqueSystemPrompt,
@@ -111,10 +110,7 @@ export const generateContent = async (
   const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
-    // Get the Langfuse client instance (optional, if needed directly in this file for tracing)
-    // const langfuse = getLangfuseClient();
-
-    // Build the system prompt using the new function that fetches from Langfuse
+    // Build the system prompt using the new async function that fetches from Langfuse
     const systemPrompt = await getInteractiveSystemPrompt(request);
 
     // Check if we have a valid prompt
@@ -195,9 +191,6 @@ export const critiquePRD = async (
   const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
-    // Get the Langfuse client instance (optional, if needed directly in this file for tracing)
-    // const langfuse = getLangfuseClient();
-
     const systemPrompt = await getCritiqueSystemPrompt(request);
     const userPrompt = await getCritiqueUserPrompt(request);
 

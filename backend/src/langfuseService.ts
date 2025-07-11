@@ -11,14 +11,13 @@ export const getLangfuseClient = (): Langfuse => {
 
     if (!secretKey || !publicKey) {
       console.warn(
-        "Langfuse secret or public key not found in environment variables. Prompts will not be fetched from Langfuse."
+        "Langfuse secret or public key not found in environment variables. Prompts will not be fetched from Langfuse. Ensure LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY are set."
       );
-      // Potentially throw an error or handle this case more gracefully
-      // For now, we'll allow the app to run but log a warning.
-      // A null client could be returned or a mock/dummy client.
-      // However, the SDK itself might throw an error if keys are missing.
-      // Let's assume for now that if keys are missing, we should not initialize.
-      throw new Error("Langfuse API keys not configured.");
+      // This error will prevent the application from fully starting if Langfuse is critical.
+      // Consider if a less critical failure mode is desired if prompts can have defaults.
+      throw new Error(
+        "Langfuse API keys not configured. Please set LANGFUSE_SECRET_KEY and LANGFUSE_PUBLIC_KEY."
+      );
     }
 
     langfuse = new Langfuse({
@@ -26,35 +25,26 @@ export const getLangfuseClient = (): Langfuse => {
       publicKey,
       baseUrl: baseUrl || "https://cloud.langfuse.com", // Default to cloud if not specified
     });
-    console.log("Langfuse client initialized.");
+    console.log(
+      `Langfuse client initialized. Base URL: ${
+        baseUrl || "https://cloud.langfuse.com"
+      }`
+    );
   }
   return langfuse;
 };
 
-// Optional: A function to explicitly initialize Langfuse on app startup
+// Function to explicitly initialize Langfuse on app startup
 export const initLangfuse = () => {
   try {
     getLangfuseClient();
   } catch (error) {
-    console.error("Failed to initialize Langfuse client:", error);
-    // Decide if this should be a fatal error for the application
+    console.error(
+      "Failed to initialize Langfuse client during startup:",
+      error
+    );
+    // Depending on application requirements, you might want to exit the process
+    // if Langfuse is essential for operation.
+    // process.exit(1);
   }
 };
-
-// Example of how to fetch a prompt using this service (will be expanded later)
-// export const fetchPrompt = async (promptName: string, variables?: Record<string, any>) => {
-//   const client = getLangfuseClient();
-//   if (!client) {
-//     throw new Error("Langfuse client not available.");
-//   }
-//   try {
-//     const prompt = await client.getPrompt(promptName);
-//     if (variables) {
-//       return prompt.compile(variables);
-//     }
-//     return prompt.prompt; // Return raw prompt if no variables
-//   } catch (error) {
-//     console.error(`Error fetching prompt "${promptName}" from Langfuse:`, error);
-//     throw error; // Re-throw the error to be handled by the caller
-//   }
-// };
