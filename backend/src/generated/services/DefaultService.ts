@@ -4,11 +4,19 @@
 /* eslint-disable */
 import type { CritiqueRequest } from '../models/CritiqueRequest';
 import type { CritiqueResponse } from '../models/CritiqueResponse';
+import type { FeedbackAnalyticsResponse } from '../models/FeedbackAnalyticsResponse';
+import type { FeedbackHistoryResponse } from '../models/FeedbackHistoryResponse';
+import type { FeedbackRequest } from '../models/FeedbackRequest';
+import type { FeedbackResponse } from '../models/FeedbackResponse';
+import type { FeedbackTrendsResponse } from '../models/FeedbackTrendsResponse';
 import type { GenerateContentRequest } from '../models/GenerateContentRequest';
 import type { GenerateContentResponse } from '../models/GenerateContentResponse';
 import type { LLMModel } from '../models/LLMModel';
 import type { LLMProviderConfig } from '../models/LLMProviderConfig';
 import type { PRD } from '../models/PRD';
+import type { SessionData } from '../models/SessionData';
+import type { SessionSaveRequest } from '../models/SessionSaveRequest';
+import type { SessionSaveResponse } from '../models/SessionSaveResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -224,6 +232,157 @@ export class DefaultService {
             },
             errors: {
                 500: `Failed to fetch models from Ollama`,
+            },
+        });
+    }
+    /**
+     * Submit enhanced feedback for a generation
+     * Submit feedback with rating and categories for a specific AI generation
+     * @param requestBody
+     * @returns FeedbackResponse Feedback submitted successfully
+     * @throws ApiError
+     */
+    public static postApiFeedbackEnhanced(
+        requestBody: FeedbackRequest,
+    ): CancelablePromise<FeedbackResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/feedback/enhanced',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid feedback data`,
+                500: `Failed to submit feedback`,
+            },
+        });
+    }
+    /**
+     * Get feedback history
+     * Retrieve paginated feedback history with optional filtering
+     * @param limit Number of feedback items to return
+     * @param offset Number of feedback items to skip
+     * @param userId Filter by user ID
+     * @returns FeedbackHistoryResponse Feedback history retrieved successfully
+     * @throws ApiError
+     */
+    public static getApiFeedbackHistory(
+        limit: number = 10,
+        offset?: number,
+        userId?: string,
+    ): CancelablePromise<FeedbackHistoryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/feedback/history',
+            query: {
+                'limit': limit,
+                'offset': offset,
+                'userId': userId,
+            },
+            errors: {
+                400: `Bad request - invalid query parameters`,
+                500: `Failed to retrieve feedback history`,
+            },
+        });
+    }
+    /**
+     * Get feedback analytics
+     * Retrieve aggregated feedback analytics and metrics
+     * @param userId Filter analytics by user ID
+     * @param timeRange Time range for analytics
+     * @returns FeedbackAnalyticsResponse Feedback analytics retrieved successfully
+     * @throws ApiError
+     */
+    public static getApiFeedbackAnalytics(
+        userId?: string,
+        timeRange: '24h' | '7d' | '30d' | '90d' = '30d',
+    ): CancelablePromise<FeedbackAnalyticsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/feedback/analytics',
+            query: {
+                'userId': userId,
+                'timeRange': timeRange,
+            },
+            errors: {
+                400: `Bad request - invalid query parameters`,
+                500: `Failed to retrieve feedback analytics`,
+            },
+        });
+    }
+    /**
+     * Get feedback trends
+     * Retrieve feedback trends over time
+     * @param userId Filter trends by user ID
+     * @param period Period for trend aggregation
+     * @param timeRange Time range for trends
+     * @returns FeedbackTrendsResponse Feedback trends retrieved successfully
+     * @throws ApiError
+     */
+    public static getApiFeedbackTrends(
+        userId?: string,
+        period: 'day' | 'week' | 'month' = 'day',
+        timeRange: '24h' | '7d' | '30d' | '90d' = '30d',
+    ): CancelablePromise<FeedbackTrendsResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/feedback/trends',
+            query: {
+                'userId': userId,
+                'period': period,
+                'timeRange': timeRange,
+            },
+            errors: {
+                400: `Bad request - invalid query parameters`,
+                500: `Failed to retrieve feedback trends`,
+            },
+        });
+    }
+    /**
+     * Get PRD session data
+     * Retrieve conversation history and settings for a PRD session
+     * @param id The ID of the PRD
+     * @returns SessionData Session data retrieved successfully
+     * @throws ApiError
+     */
+    public static getPrdsSession(
+        id: string,
+    ): CancelablePromise<SessionData> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/prds/{id}/session',
+            path: {
+                'id': id,
+            },
+            errors: {
+                404: `PRD or session not found`,
+                500: `Failed to retrieve session data`,
+            },
+        });
+    }
+    /**
+     * Save PRD session data
+     * Save conversation history and settings for a PRD session
+     * @param id The ID of the PRD
+     * @param requestBody
+     * @returns SessionSaveResponse Session data saved successfully
+     * @throws ApiError
+     */
+    public static postPrdsSession(
+        id: string,
+        requestBody: SessionSaveRequest,
+    ): CancelablePromise<SessionSaveResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/prds/{id}/session',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid session data`,
+                404: `PRD not found`,
+                500: `Failed to save session data`,
             },
         });
     }
