@@ -21,7 +21,6 @@ import {
 export interface FeedbackData {
   traceId: string;
   generationId: string;
-  score: number;
   comment?: string;
   rating?: number;
   categories?: string[];
@@ -31,11 +30,7 @@ interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (feedback: FeedbackData) => Promise<void>;
-  feedbackData: Omit<
-    FeedbackData,
-    "score" | "comment" | "rating" | "categories"
-  >;
-  initialScore?: number;
+  feedbackData: Omit<FeedbackData, "comment" | "rating" | "categories">;
   title?: string;
   description?: string;
 }
@@ -78,11 +73,10 @@ export function FeedbackModal({
   onClose,
   onSubmit,
   feedbackData,
-  initialScore,
   title = "Provide Feedback",
   description = "Help us improve by sharing your thoughts on this response.",
 }: FeedbackModalProps) {
-  const [rating, setRating] = useState<number>(initialScore || 0);
+  const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState<string>("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -112,9 +106,8 @@ export function FeedbackModal({
     try {
       await onSubmit({
         ...feedbackData,
-        score: rating, // Use the star rating as the score
+        rating,
         comment: comment.trim() || undefined,
-        rating: rating,
         categories:
           selectedCategories.length > 0 ? selectedCategories : undefined,
       });
@@ -137,7 +130,7 @@ export function FeedbackModal({
   };
 
   const resetForm = () => {
-    setRating(initialScore || 0);
+    setRating(0);
     setComment("");
     setSelectedCategories([]);
     setSubmitStatus("idle");

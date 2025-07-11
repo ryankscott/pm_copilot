@@ -44,7 +44,6 @@ export function MetadataFooter({
   langfuseData,
 }: MetadataFooterProps) {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
-  const [initialFeedbackScore, setInitialFeedbackScore] = useState<number>(0);
 
   const formatTime = (seconds: number) => {
     if (seconds < 1) {
@@ -64,8 +63,6 @@ export function MetadataFooter({
     if (langfuseData) {
       // Convert thumbs up/down to star rating
       // Thumbs up = 5 stars, thumbs down = 1 star
-      const starRating = score === 1 ? 5 : 1;
-      setInitialFeedbackScore(starRating);
       setFeedbackModalOpen(true);
     } else {
       // Fallback to simple callback
@@ -82,7 +79,7 @@ export function MetadataFooter({
       await feedbackApi.submit({
         traceId: feedback.traceId,
         generationId: feedback.generationId,
-        score: feedback.score,
+        rating: feedback.rating,
         comment: feedback.comment,
       });
 
@@ -92,7 +89,7 @@ export function MetadataFooter({
       });
 
       // Call legacy callbacks if provided
-      if (feedback.score === 1) {
+      if (feedback.rating === 1) {
         onThumbsUp?.();
       } else {
         onThumbsDown?.();
@@ -177,7 +174,6 @@ export function MetadataFooter({
             traceId: langfuseData.traceId,
             generationId: langfuseData.generationId,
           }}
-          initialScore={initialFeedbackScore}
           title="How was this response?"
           description="Your feedback helps us improve the AI responses and provide better results."
         />

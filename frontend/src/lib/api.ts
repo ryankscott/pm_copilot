@@ -81,7 +81,6 @@ export interface LangfuseData {
 export interface FeedbackRequest {
   traceId: string;
   generationId: string;
-  score: number; // 1 for thumbs up, -1 for thumbs down
   comment?: string;
 }
 
@@ -160,8 +159,7 @@ export const feedbackApi = {
       analytics?: {
         traceId: string;
         generationId: string;
-        score: number;
-        rating?: number;
+        rating: number;
         categoriesCount: number;
       };
     }
@@ -171,8 +169,7 @@ export const feedbackApi = {
         analytics?: {
           traceId: string;
           generationId: string;
-          score: number;
-          rating?: number;
+          rating: number;
           categoriesCount: number;
         };
       }
@@ -192,8 +189,7 @@ export const feedbackApi = {
       id: string;
       traceId: string;
       generationId: string;
-      score: number;
-      rating?: number;
+      rating: number;
       comment?: string;
       categories?: string[];
       timestamp: string;
@@ -218,8 +214,7 @@ export const feedbackApi = {
         id: string;
         traceId: string;
         generationId: string;
-        score: number;
-        rating?: number;
+        rating: number;
         comment?: string;
         categories?: string[];
         timestamp: string;
