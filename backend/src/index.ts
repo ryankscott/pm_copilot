@@ -17,9 +17,6 @@ import {
   submitFeedbackHandler,
   getLangfuseHealth,
   submitFeedbackEnhanced,
-  getFeedbackHistory,
-  getFeedbackAnalytics,
-  getFeedbackTrends,
 } from "./handlers";
 import { flushLangfuse } from "./langfuse";
 
@@ -70,9 +67,6 @@ initDB("prds.db")
 
     // Enhanced feedback endpoints
     app.post("/api/feedback/enhanced", submitFeedbackEnhanced);
-    app.get("/api/feedback/history", getFeedbackHistory);
-    app.get("/api/feedback/analytics", getFeedbackAnalytics);
-    app.get("/api/feedback/trends", getFeedbackTrends);
 
     app.listen(port, () => {
       console.log(`Server is running on http://localhost:${port}`);

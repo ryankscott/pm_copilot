@@ -195,7 +195,7 @@ export interface LangfuseTraceData {
 export interface LangfuseFeedback {
   traceId: string;
   generationId: string;
-  score: number; // 1 for thumbs up, -1 for thumbs down
+  rating: number;
   comment?: string;
   userId?: string;
 }
@@ -300,14 +300,14 @@ export const submitFeedback = async (feedback: LangfuseFeedback) => {
     await lf.score({
       traceId: feedback.traceId,
       name: "user-feedback",
-      value: feedback.score,
+      value: feedback.rating,
       comment: feedback.comment,
     });
 
     if (defaultConfig.enableDetailedLogging) {
       console.log("Feedback submitted successfully:", {
         traceId: feedback.traceId,
-        score: feedback.score,
+        rating: feedback.rating,
         userId: feedback.userId,
       });
     }

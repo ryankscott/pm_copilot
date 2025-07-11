@@ -6,11 +6,11 @@ import {
   ThumbsUpIcon,
   ThumbsDownIcon,
 } from "lucide-react";
-import AIAvatar from "./AIAvatar";
-import { FeedbackModal, type FeedbackData } from "./feedback-modal";
+import AIAvatar from "./ui/AIAvatar";
+import { FeedbackModal, type FeedbackData } from "./FeedbackModal";
 import { feedbackApi } from "@/lib/api";
 import { toast } from "sonner";
-import { Button } from "./button";
+import { Button } from "./ui/button";
 
 interface MetadataFooterProps {
   inputTokens?: number;
@@ -59,14 +59,14 @@ export function MetadataFooter({
     return `$${cost.toFixed(4)}`;
   };
 
-  const handleFeedbackClick = (score: number) => {
+  const handleFeedbackClick = (rating: number) => {
     if (langfuseData) {
       // Convert thumbs up/down to star rating
       // Thumbs up = 5 stars, thumbs down = 1 star
       setFeedbackModalOpen(true);
     } else {
       // Fallback to simple callback
-      if (score === 1) {
+      if (rating === 1) {
         onThumbsUp?.();
       } else {
         onThumbsDown?.();

@@ -22,7 +22,7 @@ import rehypeHighlight from "rehype-highlight";
 import { prdApi, sessionApi } from "@/lib/api";
 import { Textarea } from "./ui/textarea";
 import { useLLMStore } from "@/store/llm-store";
-import { MetadataFooter } from "./ui/metadata-footer";
+import { MetadataFooter } from "./MetadataFooter";
 
 // Utility functions moved outside component
 const generateRequestId = () => Math.random().toString(36).substr(2, 9);

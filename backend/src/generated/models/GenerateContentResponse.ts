@@ -2,7 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { LangfuseData } from './LangfuseData';
 export type GenerateContentResponse = {
     /**
      * The AI-generated content
@@ -32,9 +31,5 @@ export type GenerateContentResponse = {
      * Additional suggestions for improving the content
      */
     suggestions?: Array<string>;
-    /**
-     * Langfuse tracking data for the generation
-     */
-    langfuseData?: LangfuseData;
 };
 

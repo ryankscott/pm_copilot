@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Button } from "./button";
-import { Textarea } from "./textarea";
-import { Label } from "./label";
+import { Button } from "./ui/button";
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./dialog";
+} from "./ui/dialog";
 import {
   StarIcon,
   MessageSquareIcon,

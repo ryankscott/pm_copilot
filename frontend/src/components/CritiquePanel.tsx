@@ -16,7 +16,7 @@ import { useLLMStore } from "@/store/llm-store";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import { MetadataFooter } from "./ui/metadata-footer";
+import { MetadataFooter } from "./MetadataFooter";
 
 interface CritiquePanelProps {
   prd: PRD;
