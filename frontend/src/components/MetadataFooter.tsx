@@ -54,7 +54,10 @@ export function MetadataFooter({
 
   const formatCost = (cost: number) => {
     if (cost < 0.01) {
-      return `$${(cost * 1000).toFixed(2)}k`;
+      return `$${cost.toFixed(4)}`;
+    }
+    if (cost >= 1) {
+      return `$${(cost / 1000).toFixed(2)}k`;
     }
     return `$${cost.toFixed(4)}`;
   };
