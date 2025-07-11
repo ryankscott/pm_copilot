@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
 import {
@@ -197,20 +197,53 @@ const useSessionManagement = (
     loadSession();
   }, [prdId, setInteractiveMessages]);
 
-  const saveSession = async (messages: ConversationMessage[]) => {
-    if (messages.length > 0) {
-      try {
-        await sessionApi.save(prdId, {
-          conversation_history: messages,
-          settings: {},
-        });
-      } catch (error) {
-        console.error("Error saving session:", error);
+  const saveSession = useCallback(
+    async (messages: ConversationMessage[]) => {
+      if (messages.length > 0) {
+        try {
+          await sessionApi.save(prdId, {
+            conversation_history: messages,
+            settings: {},
+          });
+        } catch (error) {
+          console.error("Error saving session:", error);
+        }
       }
-    }
-  };
+    },
+    [prdId]
+  );
 
-  return { saveSession };
+  // Create debounced version of saveSession
+  const debouncedSaveSession = useMemo(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const debouncedFn = (messages: ConversationMessage[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        saveSession(messages);
+      }, 1000); // Debounce for 1 second
+    };
+
+    // Add cancel method to the function
+    Object.assign(debouncedFn, {
+      cancel: () => {
+        clearTimeout(timeoutId);
+      },
+    });
+
+    return debouncedFn as typeof debouncedFn & { cancel: () => void };
+  }, [saveSession]);
+
+  // Cleanup effect to cancel debounced function on unmount
+  useEffect(() => {
+    return () => {
+      if (debouncedSaveSession.cancel) {
+        debouncedSaveSession.cancel();
+      }
+    };
+  }, [debouncedSaveSession]);
+
+  return { debouncedSaveSession };
 };
 
 interface InteractivePRDPanelProps {
@@ -239,14 +272,17 @@ export function InteractivePRDPanel({
   });
 
   // Session management logic
-  const { saveSession } = useSessionManagement(prd.id, setInteractiveMessages);
+  const { debouncedSaveSession } = useSessionManagement(
+    prd.id,
+    setInteractiveMessages
+  );
 
   // Save session whenever messages change
   useEffect(() => {
     if (interactiveMessages.length > 0) {
-      saveSession(interactiveMessages);
+      debouncedSaveSession(interactiveMessages);
     }
-  }, [interactiveMessages, saveSession]);
+  }, [interactiveMessages, debouncedSaveSession]);
 
   const handleInteractiveSession = async (isStart: boolean = false) => {
     if (!interactiveInput.trim() || isInteractiveLoading) return;
