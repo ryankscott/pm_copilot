@@ -4,10 +4,12 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import { generateText, CoreMessage } from "ai";
 import "dotenv/config";
+import { getLangfuseClient } from "./langfuseService"; // Import Langfuse client
+// Updated imports from prompts.ts - these will be new functions
 import {
-  buildSystemPrompt,
-  buildCritiqueSystemPrompt,
-  buildCritiqueUserPrompt,
+  getInteractiveSystemPrompt,
+  getCritiqueSystemPrompt,
+  getCritiqueUserPrompt,
 } from "./prompts";
 import {
   CritiqueRequest,
@@ -109,8 +111,11 @@ export const generateContent = async (
   const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
-    // Build the system prompt based on request parameters
-    const systemPrompt = buildSystemPrompt(request);
+    // Get the Langfuse client instance (optional, if needed directly in this file for tracing)
+    // const langfuse = getLangfuseClient();
+
+    // Build the system prompt using the new function that fetches from Langfuse
+    const systemPrompt = await getInteractiveSystemPrompt(request);
 
     // Check if we have a valid prompt
     if (!request.prompt || request.prompt.trim() === "") {
@@ -190,8 +195,11 @@ export const critiquePRD = async (
   const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
-    const systemPrompt = buildCritiqueSystemPrompt(request);
-    const userPrompt = buildCritiqueUserPrompt(request);
+    // Get the Langfuse client instance (optional, if needed directly in this file for tracing)
+    // const langfuse = getLangfuseClient();
+
+    const systemPrompt = await getCritiqueSystemPrompt(request);
+    const userPrompt = await getCritiqueUserPrompt(request);
 
     console.log("Critiquing PRD with AI model:", modelName);
     console.log("Provider:", request.provider?.type || "ollama (default)");

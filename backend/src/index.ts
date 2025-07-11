@@ -15,9 +15,13 @@ import {
   testProvider,
   getOllamaModels,
 } from "./handlers";
+import { initLangfuse } from "./langfuseService"; // Import Langfuse initialization
 
 const app = express();
 const port = 8080;
+
+// Initialize Langfuse
+initLangfuse();
 
 // Enable CORS for all routes
 app.use(
