@@ -12,8 +12,8 @@ export const initDB = (filepath: string): Promise<sqlite3.Database> => {
           id TEXT PRIMARY KEY,
           title TEXT,
           content TEXT,
-          createdAt DATETIME,
-          updatedAt DATETIME
+          created_at DATETIME,
+          updated_at DATETIME
         )`,
           (err) => {
             if (err) {

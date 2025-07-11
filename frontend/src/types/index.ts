@@ -16,6 +16,7 @@ export interface ConversationMessage {
   cost?: number;
   model_used?: string;
   has_error?: boolean;
+  langfuseData?: LangfuseData;
 }
 
 export interface GenerateContentRequest {
@@ -37,6 +38,10 @@ export interface GenerateContentResponse {
   output_tokens?: number;
   tokens_used?: number;
   generation_time?: number;
+  langfuseData?: {
+    traceId: string;
+    generationId: string;
+  };
 }
 
 // Enhanced provider types
@@ -107,6 +112,13 @@ export type CritiqueResponse = {
    * Time taken to generate critique in seconds
    */
   generation_time?: number;
+  /**
+   * Langfuse tracking data for feedback
+   */
+  langfuseData?: {
+    traceId: string;
+    generationId: string;
+  };
 };
 
 // Critique-related types

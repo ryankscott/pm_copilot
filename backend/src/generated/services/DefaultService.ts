@@ -4,6 +4,8 @@
 /* eslint-disable */
 import type { CritiqueRequest } from '../models/CritiqueRequest';
 import type { CritiqueResponse } from '../models/CritiqueResponse';
+import type { FeedbackRequest } from '../models/FeedbackRequest';
+import type { FeedbackResponse } from '../models/FeedbackResponse';
 import type { GenerateContentRequest } from '../models/GenerateContentRequest';
 import type { GenerateContentResponse } from '../models/GenerateContentResponse';
 import type { LLMModel } from '../models/LLMModel';
@@ -224,6 +226,27 @@ export class DefaultService {
             },
             errors: {
                 500: `Failed to fetch models from Ollama`,
+            },
+        });
+    }
+    /**
+     * Submit enhanced feedback for a generation
+     * Submit feedback with rating and categories for a specific AI generation
+     * @param requestBody
+     * @returns FeedbackResponse Feedback submitted successfully
+     * @throws ApiError
+     */
+    public static postApiFeedbackEnhanced(
+        requestBody: FeedbackRequest,
+    ): CancelablePromise<FeedbackResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/feedback/enhanced',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid feedback data`,
+                500: `Failed to submit feedback`,
             },
         });
     }

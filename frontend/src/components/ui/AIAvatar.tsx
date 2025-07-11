@@ -43,7 +43,7 @@ const AIAvatar: React.FC<AIAvatarProps> = ({ provider, model }) => {
   const LogoComponent = getLogo();
 
   return (
-    <div className={"flex flex-row gap-2"}>
+    <div className={"flex flex-row gap-2 justify-center items-center"}>
       <img
         src={LogoComponent}
         alt={`${getModelName()} logo`}

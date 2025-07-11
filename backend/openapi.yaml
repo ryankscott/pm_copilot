@@ -261,6 +261,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /api/feedback/enhanced:
+    post:
+      summary: Submit enhanced feedback for a generation
+      description: Submit feedback with rating and categories for a specific AI generation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackRequest"
+      responses:
+        "200":
+          description: Feedback submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FeedbackResponse"
+        "400":
+          description: Bad request - invalid feedback data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Failed to submit feedback
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
 components:
   schemas:
     PRD:
@@ -496,3 +526,76 @@ components:
         details:
           type: object
           description: Additional error details
+    FeedbackRequest:
+      type: object
+      required:
+        - traceId
+        - generationId
+      properties:
+        traceId:
+          type: string
+          description: Langfuse trace ID for the generation
+          example: "trace_123456"
+        generationId:
+          type: string
+          description: Langfuse generation ID for the specific response
+          example: "gen_abcdef"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Rating from 1 (poor) to 5 (excellent)
+          example: 4
+        comment:
+          type: string
+          description: Optional text feedback
+          example: "The response was helpful but could be more detailed"
+        categories:
+          type: array
+          items:
+            type: string
+          description: Feedback categories
+          example: ["helpful", "accurate", "clear"]
+    FeedbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Whether the feedback was successfully submitted
+        message:
+          type: string
+          description: Response message
+        analytics:
+          type: object
+          properties:
+            traceId:
+              type: string
+              description: The trace ID that was rated
+            generationId:
+              type: string
+              description: The generation ID that was rated
+            rating:
+              type: integer
+              description: The rating that was submitted
+            categoriesCount:
+              type: integer
+              description: Number of categories selected
+          description: Analytics data for the submitted feedback
+    LangfuseData:
+      type: object
+      properties:
+        traceId:
+          type: string
+          description: Langfuse trace ID
+        generationId:
+          type: string
+          description: Langfuse generation ID
+        userId:
+          type: string
+          description: User ID associated with the generation
+        sessionId:
+          type: string
+          description: Session ID for the generation
+        metadata:
+          type: object
+          description: Additional metadata for the generation
