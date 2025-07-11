@@ -1,11 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "./ui/button";
-import { FileText, Eye, Edit, Loader2, CheckCircle, Bot } from "lucide-react";
+import {
+  FileText,
+  Eye,
+  Edit,
+  Loader2,
+  CheckCircle,
+  Bot,
+  Download,
+} from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import type { PRD } from "../types";
 import { AIAssistantPanel } from "./AIAssistantPanel";
 import { EditableHeader } from "./EditableHeader";
 import { TiptapEditor } from "./TiptapEditor";
+import { exportToMarkdown, sanitizeFilename } from "../lib/utils";
 
 interface PRDEditorProps {
   prd: PRD;
@@ -81,6 +90,11 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
     setIsAISheetOpen(false);
   };
 
+  const handleExportToMarkdown = () => {
+    const filename = sanitizeFilename(title || "untitled_prd") + ".md";
+    exportToMarkdown(content, filename);
+  };
+
   return (
     <div className="flex-1 flex w-full">
       {/* Editor */}
@@ -108,6 +122,16 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
                   </>
                 ) : null}
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportToMarkdown}
+                title="Export as Markdown"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export MD
+              </Button>
 
               <Sheet open={isAISheetOpen} onOpenChange={setIsAISheetOpen}>
                 <SheetTrigger asChild>
