@@ -21,6 +21,75 @@ interface PRDEditorProps {
   onUpdatePrd: (prd: PRD) => Promise<void>;
 }
 
+const convertMarkdownToHtml = (markdown: string): string => {
+  // Simple markdown to HTML conversion for common elements
+  let html = markdown;
+
+  // Headers
+  html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
+  html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
+  html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
+  html = html.replace(/^#### (.*$)/gm, "<h4>$1</h4>");
+  html = html.replace(/^##### (.*$)/gm, "<h5>$1</h5>");
+  html = html.replace(/^###### (.*$)/gm, "<h6>$1</h6>");
+
+  // Bold and italic
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+  // Links
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
+
+  // Code blocks
+  html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+  // Lists
+  const lines = html.split("\n");
+  let inList = false;
+  let listType = "";
+  const processedLines = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const bulletMatch = line.match(/^[\s]*[-*+]\s+(.*)$/);
+    const numberedMatch = line.match(/^[\s]*\d+\.\s+(.*)$/);
+
+    if (bulletMatch) {
+      if (!inList || listType !== "ul") {
+        if (inList) processedLines.push(`</${listType}>`);
+        processedLines.push("<ul>");
+        inList = true;
+        listType = "ul";
+      }
+      processedLines.push(`<li>${bulletMatch[1]}</li>`);
+    } else if (numberedMatch) {
+      if (!inList || listType !== "ol") {
+        if (inList) processedLines.push(`</${listType}>`);
+        processedLines.push("<ol>");
+        inList = true;
+        listType = "ol";
+      }
+      processedLines.push(`<li>${numberedMatch[1]}</li>`);
+    } else {
+      if (inList) {
+        processedLines.push(`</${listType}>`);
+        inList = false;
+        listType = "";
+      }
+      if (line.trim()) {
+        processedLines.push(`<p>${line}</p>`);
+      }
+    }
+  }
+
+  if (inList) {
+    processedLines.push(`</${listType}>`);
+  }
+
+  return processedLines.join("\n");
+};
+
 export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
   const [title, setTitle] = useState(prd.title);
   const [content, setContent] = useState(prd.content);
@@ -92,7 +161,8 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
       markdownContent += `${section.content}\n\n`;
     });
 
-    setContent(markdownContent);
+    const htmlContent = convertMarkdownToHtml(markdownContent);
+    setContent(htmlContent);
     setHasUnsavedChanges(true);
     setIsAISheetOpen(false);
   };

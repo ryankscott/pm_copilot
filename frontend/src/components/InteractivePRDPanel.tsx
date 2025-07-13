@@ -648,7 +648,7 @@ function MessageComponent({
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight]}
           >
-            {contentAsString ?? (typeof message.content === "string" ? message.content : "")}
+            {contentAsString}
           </ReactMarkdown>
           {message.has_error && (
             <div className="w-full flex justify-end">

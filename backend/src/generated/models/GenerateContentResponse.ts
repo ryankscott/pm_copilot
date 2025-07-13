@@ -2,9 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { PRDContent } from './PRDContent';
 export type GenerateContentResponse = {
-    generated_content?: PRDContent;
+    /**
+     * The AI-generated content
+     */
+    generated_content?: string;
     /**
      * Number of input tokens used
      */

@@ -14,12 +14,13 @@ export interface ConversationMessage {
 
 // This map provides the content for the {{toneInstructions}} variable in the Langfuse prompt.
 const TONE_INSTRUCTIONS_MAP = {
-  technical: `
-- Include technical specifications and implementation details`,
-  executive: `
-- Focus on business impact and strategic objectives`,
-  casual: `
-- Use approachable, conversational language while maintaining clarity`,
+  technical: "
+- Include technical specifications and implementation details",
+  executive: "
+- Focus on business impact and strategic objectives",
+  casual:
+    "
+- Use approachable, conversational language while maintaining clarity",
   professional: "", // No additional instructions for professional tone, empty string.
 } as const;
 

@@ -19,6 +19,5 @@ export type { LangfuseData } from './models/LangfuseData';
 export type { LLMModel } from './models/LLMModel';
 export { LLMProviderConfig } from './models/LLMProviderConfig';
 export type { PRD } from './models/PRD';
-export type { PRDContent } from './models/PRDContent';
 
 export { DefaultService } from './services/DefaultService';
