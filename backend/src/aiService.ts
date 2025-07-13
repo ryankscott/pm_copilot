@@ -4,12 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import { generateText, CoreMessage } from "ai";
 import "dotenv/config";
-// Updated imports from prompts.ts - these will be new async functions
-import {
-  getInteractiveSystemPrompt,
-  getCritiqueSystemPrompt,
-  getCritiqueUserPrompt,
-} from "./prompts";
+import { getInteractiveSystemPrompt, getCritiqueSystemPrompt } from "./prompts";
 import {
   CritiqueRequest,
   GenerateContentRequest,
