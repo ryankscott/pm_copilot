@@ -1,21 +1,29 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
-import { generateText, CoreMessage } from "ai";
+import { generateObject, CoreMessage } from "ai";
+import { z } from "zod";
 import "dotenv/config";
-import { getInteractiveSystemPrompt, getCritiqueSystemPrompt } from "./prompts";
+import {
+  getInteractiveSystemPrompt,
+  getCritiqueSystemPrompt,
+  getCritiqueUserPrompt,
+} from "./prompts";
 import {
   CritiqueRequest,
   GenerateContentRequest,
   GenerateContentResponse,
   CritiqueResponse,
   LLMProviderConfig,
+  PRDContent,
 } from "./generated";
 import {
   createPRDTrace,
   createCritiqueTrace,
-  safeLangfuse,
   isLangfuseEnabled,
   LangfuseTraceData,
   generateSessionId,
@@ -225,13 +233,23 @@ export const generateContent = async (
       }
     }
 
-    const result = await generateText({
+    const result = await generateObject({
       model: model,
       system: systemPrompt,
       maxTokens: 10000,
       temperature: 0.7,
       prompt: messages.length === 0 ? request.prompt : undefined,
       messages: messages.length > 0 ? messages : undefined,
+      schema: z.object({
+        title: z.string(),
+        summary: z.string(),
+        sections: z.array(
+          z.object({
+            title: z.string(),
+            content: z.string(),
+          })
+        ),
+      }),
     });
 
     const endTime = Date.now();
@@ -264,7 +282,7 @@ export const generateContent = async (
     // Update Langfuse generation with results
     if (generation) {
       generation.end({
-        output: result.text,
+        output: result.object,
         usage: {
           input: result.usage?.promptTokens || 0,
           output: result.usage?.completionTokens || 0,
@@ -272,7 +290,7 @@ export const generateContent = async (
         },
         metadata: {
           generationTime,
-          outputLength: result.text.length,
+          outputLength: JSON.stringify(result.object).length,
           completedAt: new Date().toISOString(),
         },
       });
@@ -288,7 +306,7 @@ export const generateContent = async (
         generationTime,
         inputTokens: result.usage?.promptTokens || 0,
         outputTokens: result.usage?.completionTokens || 0,
-        outputLength: result.text.length,
+        outputLength: JSON.stringify(result.object).length,
         success: true,
       },
       userId,
@@ -296,14 +314,14 @@ export const generateContent = async (
     );
 
     console.log("AI generation completed in", generationTime, "seconds");
-    console.log("Generated content length:", result.text.length);
+    console.log("Generated content length:", JSON.stringify(result.object).length);
     console.log(
       "Generated content preview:",
-      result.text.substring(0, 200) + "..."
+      JSON.stringify(result.object).substring(0, 200) + "..."
     );
 
     return {
-      generated_content: result.text,
+      generated_content: result.object as PRDContent,
       tokens_used: result.usage?.totalTokens || 0,
       input_tokens: result.usage?.promptTokens || 0,
       output_tokens: result.usage?.completionTokens || 0,
@@ -448,12 +466,15 @@ export const critiquePRD = async (
     console.log("Critiquing PRD with AI model:", modelName);
     console.log("Provider:", request.provider?.type || "ollama (default)");
 
-    const result = await generateText({
+    const result = await generateObject({
       model,
       system: systemPrompt,
       prompt: userPrompt,
       maxTokens: 2000,
       temperature: 0.3,
+      schema: z.object({
+        summary: z.string(),
+      }),
     });
 
     const endTime = Date.now();
@@ -472,7 +493,7 @@ export const critiquePRD = async (
     // Update Langfuse generation with results
     if (generation) {
       generation.end({
-        output: result.text,
+        output: result.object,
         usage: {
           input: result.usage?.promptTokens || 0,
           output: result.usage?.completionTokens || 0,
@@ -480,7 +501,7 @@ export const critiquePRD = async (
         },
         metadata: {
           generationTime,
-          outputLength: result.text.length,
+          outputLength: JSON.stringify(result.object).length,
           completedAt: new Date().toISOString(),
         },
       });
@@ -496,7 +517,7 @@ export const critiquePRD = async (
         generationTime,
         inputTokens: result.usage?.promptTokens || 0,
         outputTokens: result.usage?.completionTokens || 0,
-        outputLength: result.text.length,
+        outputLength: JSON.stringify(result.object).length,
         success: true,
       },
       userId,
@@ -504,10 +525,10 @@ export const critiquePRD = async (
     );
 
     console.log("AI critique completed in", generationTime, "seconds");
-    console.log("Generated critique:", JSON.stringify(result.text, null, 2));
+    console.log("Generated critique:", JSON.stringify(result.object, null, 2));
 
     return {
-      summary: result.text,
+      summary: result.object.summary,
       input_tokens: result.usage?.promptTokens || 0,
       output_tokens: result.usage?.completionTokens || 0,
       tokens_used: result.usage?.totalTokens || 0,
@@ -580,25 +601,28 @@ export const testProvider = async (
     console.log("Testing model:", modelName);
 
     // Simple test prompt to verify the provider is working
-    const result = await generateText({
+    const result = await generateObject({
       model: model,
       prompt: "Say 'Hello from AI provider test!' in exactly those words.",
       maxTokens: 50,
       temperature: 0.1, // Very low temperature for consistent response
+      schema: z.object({
+        greeting: z.string(),
+      }),
     });
 
     const endTime = Date.now();
     const responseTime = (endTime - startTime) / 1000;
 
     console.log("Provider test completed in", responseTime, "seconds");
-    console.log("Test response:", result.text);
+    console.log("Test response:", result.object.greeting);
 
     return {
       success: true,
       provider: provider.type || "unknown",
       model: modelName,
       response_time: responseTime,
-      test_content: result.text,
+      test_content: result.object.greeting,
     };
   } catch (error) {
     const endTime = Date.now();

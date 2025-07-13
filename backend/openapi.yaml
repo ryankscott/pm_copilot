@@ -418,8 +418,7 @@ components:
       type: object
       properties:
         generated_content:
-          type: string
-          description: The AI-generated content
+          $ref: "#/components/schemas/PRDContent"
         input_tokens:
           type: integer
           description: Number of input tokens used
@@ -464,6 +463,24 @@ components:
           type: number
           format: float
           description: Time taken to generate critique in seconds
+    PRDContent:
+      type: object
+      properties:
+        title:
+          type: string
+          description: The title of the PRD
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              content:
+                type: string
+        summary:
+          type: string
+          description: A summary of the PRD
     LLMProviderConfig:
       type: object
       properties:
