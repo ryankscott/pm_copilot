@@ -4,11 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import { generateText, CoreMessage } from "ai";
 import "dotenv/config";
-import {
-  buildSystemPrompt,
-  buildCritiqueSystemPrompt,
-  buildCritiqueUserPrompt,
-} from "./prompts";
+import { getInteractiveSystemPrompt, getCritiqueSystemPrompt } from "./prompts";
 import {
   CritiqueRequest,
   GenerateContentRequest,
@@ -167,8 +163,8 @@ export const generateContent = async (
   const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
-    // Build the system prompt based on request parameters
-    const systemPrompt = buildSystemPrompt(request);
+    // Build the system prompt using the new async function that fetches from Langfuse
+    const systemPrompt = await getInteractiveSystemPrompt(request);
 
     // Check if we have a valid prompt
     if (!request.prompt || request.prompt.trim() === "") {
@@ -417,8 +413,8 @@ export const critiquePRD = async (
   const { model, modelName } = getAIModel(request.provider, request.model);
 
   try {
-    const systemPrompt = buildCritiqueSystemPrompt(request);
-    const userPrompt = buildCritiqueUserPrompt(request);
+    const systemPrompt = await getCritiqueSystemPrompt(request);
+    const userPrompt = await getCritiqueUserPrompt(request);
 
     // Start Langfuse generation tracking with enhanced metadata
     if (trace) {

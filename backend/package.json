@@ -28,7 +28,8 @@
     "sqlite3": "^5.1.7",
     "uuid": "^11.1.0",
     "vitest": "^3.2.4",
-    "zod": "^3.25.67"
+    "zod": "^3.25.67",
+    "langfuse": "^3.38.4"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.6",
