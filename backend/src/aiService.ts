@@ -17,6 +17,16 @@ import {
   CritiqueResponse,
   LLMProviderConfig,
 } from "./generated";
+import {
+  createPRDTrace,
+  createCritiqueTrace,
+  safeLangfuse,
+  isLangfuseEnabled,
+  LangfuseTraceData,
+  generateSessionId,
+  trackCustomEvent,
+  trackPerformanceMetric,
+} from "./langfuse";
 
 // Helper function to get the appropriate AI model based on provider configuration
 const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
@@ -102,9 +112,57 @@ const getAIModel = (provider?: LLMProviderConfig, modelId?: string) => {
 };
 
 export const generateContent = async (
-  request: GenerateContentRequest
-): Promise<GenerateContentResponse> => {
+  request: GenerateContentRequest,
+  prdId?: string,
+  userId?: string,
+  sessionId?: string
+): Promise<GenerateContentResponse & { langfuseData?: LangfuseTraceData }> => {
   const startTime = Date.now();
+
+  // Generate session ID if not provided
+  const effectiveSessionId = sessionId || generateSessionId(userId);
+
+  // Track the generation request
+  await trackCustomEvent(
+    "prd_generation_started",
+    {
+      prdId,
+      provider: request.provider?.type || "ollama",
+      model: request.model,
+      tone: request.tone,
+      length: request.length,
+      hasConversationHistory: !!request.conversation_history?.length,
+      conversationLength: request.conversation_history?.length || 0,
+    },
+    userId,
+    effectiveSessionId
+  );
+
+  // Create Langfuse trace with enhanced metadata
+  let trace = null;
+  let generation = null;
+  let langfuseData: LangfuseTraceData | undefined;
+
+  if (isLangfuseEnabled() && prdId) {
+    trace = await createPRDTrace(prdId, userId, effectiveSessionId, {
+      provider: request.provider?.type || "ollama",
+      model: request.model,
+      tone: request.tone,
+      length: request.length,
+      promptLength: request.prompt?.length || 0,
+      conversationTurns: request.conversation_history?.length || 0,
+    });
+
+    if (trace) {
+      langfuseData = {
+        traceId: trace.id,
+        generationId: "", // Will be set after generation
+        userId,
+        sessionId: effectiveSessionId,
+        metadata: { prdId },
+      };
+    }
+  }
 
   // Get the appropriate model based on provider configuration
   const { model, modelName } = getAIModel(request.provider, request.model);
@@ -144,6 +202,34 @@ export const generateContent = async (
       );
     }
 
+    // Start Langfuse generation tracking with enhanced metadata
+    if (trace) {
+      generation = trace.generation({
+        name: "prd-interactive-generation",
+        model: modelName,
+        input: {
+          system: systemPrompt,
+          messages: messages.length > 0 ? messages : request.prompt,
+          tone: request.tone,
+          length: request.length,
+        },
+        metadata: {
+          provider: request.provider?.type || "ollama",
+          model: modelName,
+          temperature: 0.7,
+          maxTokens: 10000,
+          systemPromptLength: systemPrompt.length,
+          userPromptLength: request.prompt.length,
+          conversationTurns: messages.length,
+          requestTimestamp: new Date().toISOString(),
+        },
+      });
+
+      if (langfuseData) {
+        langfuseData.generationId = generation.id;
+      }
+    }
+
     const result = await generateText({
       model: model,
       system: systemPrompt,
@@ -155,6 +241,64 @@ export const generateContent = async (
 
     const endTime = Date.now();
     const generationTime = (endTime - startTime) / 1000;
+
+    // Track performance metrics
+    await trackPerformanceMetric("generation_time", generationTime, "seconds", {
+      provider: request.provider?.type || "ollama",
+      model: modelName,
+      inputTokens: result.usage?.promptTokens || 0,
+      outputTokens: result.usage?.completionTokens || 0,
+      prdId,
+      userId,
+    });
+
+    await trackPerformanceMetric(
+      "token_usage",
+      result.usage?.totalTokens || 0,
+      "tokens",
+      {
+        provider: request.provider?.type || "ollama",
+        model: modelName,
+        inputTokens: result.usage?.promptTokens || 0,
+        outputTokens: result.usage?.completionTokens || 0,
+        prdId,
+        userId,
+      }
+    );
+
+    // Update Langfuse generation with results
+    if (generation) {
+      generation.end({
+        output: result.text,
+        usage: {
+          input: result.usage?.promptTokens || 0,
+          output: result.usage?.completionTokens || 0,
+          total: result.usage?.totalTokens || 0,
+        },
+        metadata: {
+          generationTime,
+          outputLength: result.text.length,
+          completedAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Track successful generation
+    await trackCustomEvent(
+      "prd_generation_completed",
+      {
+        prdId,
+        provider: request.provider?.type || "ollama",
+        model: modelName,
+        generationTime,
+        inputTokens: result.usage?.promptTokens || 0,
+        outputTokens: result.usage?.completionTokens || 0,
+        outputLength: result.text.length,
+        success: true,
+      },
+      userId,
+      effectiveSessionId
+    );
 
     console.log("AI generation completed in", generationTime, "seconds");
     console.log("Generated content length:", result.text.length);
@@ -170,8 +314,42 @@ export const generateContent = async (
       output_tokens: result.usage?.completionTokens || 0,
       model_used: modelName,
       generation_time: generationTime,
+      langfuseData,
     };
   } catch (error) {
+    const endTime = Date.now();
+    const generationTime = (endTime - startTime) / 1000;
+
+    // Track error metrics
+    await trackCustomEvent(
+      "prd_generation_error",
+      {
+        prdId,
+        provider: request.provider?.type || "ollama",
+        model: modelName,
+        error: error instanceof Error ? error.message : "Unknown error",
+        generationTime,
+        userId,
+      },
+      userId,
+      effectiveSessionId
+    );
+
+    // Mark generation as failed in Langfuse
+    if (generation) {
+      generation.end({
+        output: null,
+        level: "ERROR",
+        statusMessage: error instanceof Error ? error.message : "Unknown error",
+        metadata: {
+          generationTime,
+          errorType:
+            error instanceof Error ? error.constructor.name : "Unknown",
+          failedAt: new Date().toISOString(),
+        },
+      });
+    }
+
     console.error("AI generation failed:", error);
     throw new Error(
       `AI generation failed: ${
@@ -181,11 +359,60 @@ export const generateContent = async (
   }
 };
 
-// Main critique function
+// Enhanced critique function with similar improvements
 export const critiquePRD = async (
-  request: CritiqueRequest
-): Promise<CritiqueResponse> => {
+  request: CritiqueRequest,
+  prdId?: string,
+  userId?: string,
+  sessionId?: string
+): Promise<CritiqueResponse & { langfuseData?: LangfuseTraceData }> => {
   const startTime = Date.now();
+
+  // Generate session ID if not provided
+  const effectiveSessionId = sessionId || generateSessionId(userId);
+
+  // Track the critique request
+  await trackCustomEvent(
+    "prd_critique_started",
+    {
+      prdId,
+      provider: request.provider?.type || "ollama",
+      model: request.model,
+      depth: request.depth,
+      focusAreas: request.focus_areas,
+      hasCustomCriteria: !!request.custom_criteria,
+      includeSuggestions: request.include_suggestions,
+      contentLength: request.existing_content?.length || 0,
+    },
+    userId,
+    effectiveSessionId
+  );
+
+  // Create Langfuse trace with enhanced metadata
+  let trace = null;
+  let generation = null;
+  let langfuseData: LangfuseTraceData | undefined;
+
+  if (isLangfuseEnabled() && prdId) {
+    trace = await createCritiqueTrace(prdId, userId, effectiveSessionId, {
+      provider: request.provider?.type || "ollama",
+      model: request.model,
+      depth: request.depth,
+      focusAreas: request.focus_areas,
+      contentLength: request.existing_content?.length || 0,
+      hasCustomCriteria: !!request.custom_criteria,
+    });
+
+    if (trace) {
+      langfuseData = {
+        traceId: trace.id,
+        generationId: "", // Will be set after generation
+        userId,
+        sessionId: effectiveSessionId,
+        metadata: { prdId },
+      };
+    }
+  }
 
   // Get the appropriate model based on provider configuration
   const { model, modelName } = getAIModel(request.provider, request.model);
@@ -193,6 +420,35 @@ export const critiquePRD = async (
   try {
     const systemPrompt = await getCritiqueSystemPrompt(request);
     const userPrompt = await getCritiqueUserPrompt(request);
+
+    // Start Langfuse generation tracking with enhanced metadata
+    if (trace) {
+      generation = trace.generation({
+        name: "prd-critique-generation",
+        model: modelName,
+        input: {
+          system: systemPrompt,
+          prompt: userPrompt,
+          focusAreas: request.focus_areas,
+          depth: request.depth,
+          includeSuggestions: request.include_suggestions,
+        },
+        metadata: {
+          provider: request.provider?.type || "ollama",
+          model: modelName,
+          temperature: 0.3,
+          maxTokens: 2000,
+          systemPromptLength: systemPrompt.length,
+          userPromptLength: userPrompt.length,
+          contentLength: request.existing_content?.length || 0,
+          requestTimestamp: new Date().toISOString(),
+        },
+      });
+
+      if (langfuseData) {
+        langfuseData.generationId = generation.id;
+      }
+    }
 
     console.log("Critiquing PRD with AI model:", modelName);
     console.log("Provider:", request.provider?.type || "ollama (default)");
@@ -204,10 +460,53 @@ export const critiquePRD = async (
       maxTokens: 2000,
       temperature: 0.3,
     });
-    console.log({ result });
 
     const endTime = Date.now();
     const generationTime = (endTime - startTime) / 1000;
+
+    // Track performance metrics
+    await trackPerformanceMetric("critique_time", generationTime, "seconds", {
+      provider: request.provider?.type || "ollama",
+      model: modelName,
+      inputTokens: result.usage?.promptTokens || 0,
+      outputTokens: result.usage?.completionTokens || 0,
+      prdId,
+      userId,
+    });
+
+    // Update Langfuse generation with results
+    if (generation) {
+      generation.end({
+        output: result.text,
+        usage: {
+          input: result.usage?.promptTokens || 0,
+          output: result.usage?.completionTokens || 0,
+          total: result.usage?.totalTokens || 0,
+        },
+        metadata: {
+          generationTime,
+          outputLength: result.text.length,
+          completedAt: new Date().toISOString(),
+        },
+      });
+    }
+
+    // Track successful critique
+    await trackCustomEvent(
+      "prd_critique_completed",
+      {
+        prdId,
+        provider: request.provider?.type || "ollama",
+        model: modelName,
+        generationTime,
+        inputTokens: result.usage?.promptTokens || 0,
+        outputTokens: result.usage?.completionTokens || 0,
+        outputLength: result.text.length,
+        success: true,
+      },
+      userId,
+      effectiveSessionId
+    );
 
     console.log("AI critique completed in", generationTime, "seconds");
     console.log("Generated critique:", JSON.stringify(result.text, null, 2));
@@ -219,8 +518,42 @@ export const critiquePRD = async (
       tokens_used: result.usage?.totalTokens || 0,
       model_used: modelName,
       generation_time: generationTime,
-    } as CritiqueResponse;
+      langfuseData,
+    } as CritiqueResponse & { langfuseData?: LangfuseTraceData };
   } catch (error) {
+    const endTime = Date.now();
+    const generationTime = (endTime - startTime) / 1000;
+
+    // Track error metrics
+    await trackCustomEvent(
+      "prd_critique_error",
+      {
+        prdId,
+        provider: request.provider?.type || "ollama",
+        model: modelName,
+        error: error instanceof Error ? error.message : "Unknown error",
+        generationTime,
+        userId,
+      },
+      userId,
+      effectiveSessionId
+    );
+
+    // Mark generation as failed in Langfuse
+    if (generation) {
+      generation.end({
+        output: null,
+        level: "ERROR",
+        statusMessage: error instanceof Error ? error.message : "Unknown error",
+        metadata: {
+          generationTime,
+          errorType:
+            error instanceof Error ? error.constructor.name : "Unknown",
+          failedAt: new Date().toISOString(),
+        },
+      });
+    }
+
     console.error("AI critique failed:", error);
     throw new Error(
       `AI critique failed: ${

@@ -16,7 +16,7 @@ import { useLLMStore } from "@/store/llm-store";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
-import { MetadataFooter } from "./ui/metadata-footer";
+import { MetadataFooter } from "./MetadataFooter";
 
 interface CritiquePanelProps {
   prd: PRD;
@@ -285,6 +285,7 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
                   showFeedback={true}
                   provider={getCurrentProvider().name}
                   model={settings.selectedModel}
+                  langfuseData={critiqueResult.langfuseData}
                   className="mt-6 pt-4 border-t border-border"
                 />
               </div>
