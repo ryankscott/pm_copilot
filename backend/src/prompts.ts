@@ -14,10 +14,13 @@ export interface ConversationMessage {
 
 // This map provides the content for the {{toneInstructions}} variable in the Langfuse prompt.
 const TONE_INSTRUCTIONS_MAP = {
-  technical: "\n- Include technical specifications and implementation details",
-  executive: "\n- Focus on business impact and strategic objectives",
+  technical: "
+- Include technical specifications and implementation details",
+  executive: "
+- Focus on business impact and strategic objectives",
   casual:
-    "\n- Use approachable, conversational language while maintaining clarity",
+    "
+- Use approachable, conversational language while maintaining clarity",
   professional: "", // No additional instructions for professional tone, empty string.
 } as const;
 
@@ -66,7 +69,7 @@ export const getInteractiveSystemPrompt = async (
 export const getCritiqueSystemPrompt = async (
   request: CritiqueRequest
 ): Promise<string> => {
-  const { include_suggestions = true, existing_content } = request;
+  const { include_suggestions = true } = request;
 
   // Prepare content for the {{suggestionInstructions}} variable
   const suggestionInstructions = include_suggestions
@@ -75,16 +78,38 @@ export const getCritiqueSystemPrompt = async (
 
   try {
     const prompt = await langfuse.getPrompt(
-      "prd-critique-user-prompt-template"
+      "prd-critique-system-prompt-template"
     );
     const compiledPrompt = prompt.compile({
-      existingPrdContent: existing_content || "", // Ensure existing_content is a string
       suggestionInstructions,
     });
     return compiledPrompt as string;
   } catch (error) {
     console.error(
-      "Failed to fetch or compile 'prd-critique-user-prompt-template' from Langfuse:",
+      "Failed to fetch or compile 'prd-critique-system-prompt-template' from Langfuse:",
+      error
+    );
+    throw new Error(
+      `Failed to get critique system prompt: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+};
+
+export const getCritiqueUserPrompt = async (
+  request: CritiqueRequest
+): Promise<string> => {
+  const { existing_content } = request;
+  try {
+    const prompt = await langfuse.getPrompt("prd-critique-user-prompt");
+    const compiledPrompt = prompt.compile({
+      existingPrdContent: existing_content || "",
+    });
+    return compiledPrompt as string;
+  } catch (error) {
+    console.error(
+      "Failed to fetch or compile 'prd-critique-user-prompt' from Langfuse:",
       error
     );
     throw new Error(
