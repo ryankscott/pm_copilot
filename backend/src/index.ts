@@ -26,11 +26,18 @@ const port = 8080;
 // Enable CORS for all routes
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "http://localhost:5175",
-    ], // Support multiple Vite dev server ports
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Allow any localhost port for development
+      if (origin.match(/^http:\/\/localhost:\d+$/)) {
+        return callback(null, true);
+      }
+      
+      // Reject other origins
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
   })
 );

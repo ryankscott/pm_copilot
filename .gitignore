@@ -28,3 +28,6 @@ dist-ssr
 *.sqlite
 
 .env
+
+# Temporary files
+tmp/
