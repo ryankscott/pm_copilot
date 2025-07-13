@@ -10,7 +10,7 @@ import {
   Download,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
-import type { PRD } from "../types";
+import type { PRD, PRDContent } from "../types";
 import { AIAssistantPanel } from "./AIAssistantPanel";
 import { EditableHeader } from "./EditableHeader";
 import { TiptapEditor } from "./TiptapEditor";
@@ -84,8 +84,15 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
     setHasUnsavedChanges(true);
   };
 
-  const handleApplyAIContent = (aiContent: string) => {
-    setContent(aiContent);
+  const handleApplyAIContent = (aiContent: PRDContent) => {
+    let markdownContent = `# ${aiContent.title}\n\n`;
+    markdownContent += `**Summary:** ${aiContent.summary}\n\n`;
+    aiContent.sections.forEach((section) => {
+      markdownContent += `## ${section.title}\n\n`;
+      markdownContent += `${section.content}\n\n`;
+    });
+
+    setContent(markdownContent);
     setHasUnsavedChanges(true);
     setIsAISheetOpen(false);
   };
