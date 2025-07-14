@@ -6,9 +6,18 @@ export interface PRD {
   updatedAt: string;
 }
 
+export interface PRDContent {
+  title: string;
+  summary: string;
+  sections: {
+    title: string;
+    content: string;
+  }[];
+}
+
 export interface ConversationMessage {
   role: "user" | "assistant";
-  content: string;
+  content: string | PRDContent;
   timestamp?: string;
   input_tokens?: number;
   output_tokens?: number;
@@ -31,7 +40,7 @@ export interface GenerateContentRequest {
 }
 
 export interface GenerateContentResponse {
-  generated_content: string;
+  generated_content: PRDContent;
   model_used?: string;
   suggestions?: string[];
   input_tokens?: number;
@@ -139,4 +148,9 @@ export interface CritiqueRequest {
   custom_criteria?: string;
   provider?: LLMProviderConfig;
   model?: string;
+}
+
+export interface LangfuseData {
+  traceId: string;
+  generationId: string;
 }

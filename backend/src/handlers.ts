@@ -125,8 +125,6 @@ export const generatePrdContent =
     const { id } = req.params;
     const generateRequest: GenerateContentRequest = req.body;
 
-    // TODO: Remove the userId and sessionID and the logging
-    // Extract user information from headers or body (you can customize this)
     const userId = (req.headers["x-user-id"] as string) || "anonymous";
     const sessionId =
       (req.headers["x-session-id"] as string) || `session-${Date.now()}`;
@@ -144,7 +142,6 @@ export const generatePrdContent =
     console.log("Model:", generateRequest.model);
     console.log("Provider configured:", generateRequest.provider?.isConfigured);
 
-    // Validate required fields
     if (!generateRequest.prompt) {
       res.status(400).json({
         message: "Missing required field: prompt",
@@ -155,54 +152,14 @@ export const generatePrdContent =
 
     try {
       const startTime = Date.now();
-      const maxRetries = 3;
-      let aiResult: any = null;
+      const aiResult = await aiService.generateContent(
+        generateRequest,
+        id,
+        userId,
+        sessionId
+      );
 
-      // Retry logic for empty content
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        console.log(`AI generation attempt ${attempt}/${maxRetries}`);
-
-        aiResult = await aiService.generateContent(
-          {
-            prompt: generateRequest.prompt,
-            context: generateRequest.context,
-            existing_content: generateRequest.existing_content,
-            tone: generateRequest.tone,
-            length: generateRequest.length,
-            conversation_history: generateRequest.conversation_history,
-            provider: generateRequest.provider,
-            model: generateRequest.model,
-          },
-          id,
-          userId,
-          sessionId
-        );
-
-        // Check if result has meaningful content
-        if (
-          aiResult?.generated_content &&
-          aiResult.generated_content.trim().length > 0
-        ) {
-          console.log(`AI generation successful on attempt ${attempt}`);
-          break;
-        }
-
-        console.log(`Attempt ${attempt} failed - empty or no content returned`);
-
-        // If this was the last attempt, throw an error
-        if (attempt === maxRetries) {
-          throw new Error(
-            `AI service returned empty content after ${maxRetries} attempts`
-          );
-        }
-
-        // Add a small delay between retries (exponential backoff)
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * (attempt + 1) ** 2)
-        );
-      }
-
-      if (!aiResult) {
+      if (!aiResult || !aiResult.generated_content) {
         throw new Error("AI service failed to generate content");
       }
 
@@ -212,7 +169,6 @@ export const generatePrdContent =
       res.json({
         ...aiResult,
         generationTime,
-        // Include Langfuse data for frontend to use for feedback
         langfuseData: aiResult.langfuseData,
       });
     } catch (error) {
@@ -472,13 +428,7 @@ export const testProvider = async (req: Request, res: Response) => {
   try {
     const startTime = Date.now();
 
-    // Use the AI service to test a simple generation
-    const testResult = await aiService.generateContent({
-      prompt:
-        "Test connection. Please respond with exactly: 'Connection successful'",
-      provider,
-      model,
-    });
+    const testResult = await aiService.testProvider(provider, model);
 
     const endTime = Date.now();
     const responseTime = (endTime - startTime) / 1000;
@@ -487,9 +437,7 @@ export const testProvider = async (req: Request, res: Response) => {
     console.log("Response time:", responseTime, "seconds");
 
     res.json({
-      success: true,
-      provider: provider.type,
-      model: testResult.model_used,
+      ...testResult,
       responseTime,
       message: `Successfully connected to ${provider.type}`,
     });

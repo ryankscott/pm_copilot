@@ -15,6 +15,7 @@ import type {
   ConversationMessage,
   LLMProviderConfig,
   LLMModel,
+  PRDContent,
 } from "@/types";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -26,97 +27,6 @@ import { MetadataFooter } from "./MetadataFooter";
 
 // Utility functions moved outside component
 const generateRequestId = () => Math.random().toString(36).substr(2, 9);
-
-const hasPrdTags = (content: string): boolean => {
-  return content.includes("<prd>") && content.includes("</prd>");
-};
-
-const extractPrdContent = (content: string): string => {
-  const startTag = "<prd>";
-  const endTag = "</prd>";
-  const startIndex = content.indexOf(startTag);
-  const endIndex = content.indexOf(endTag);
-
-  if (startIndex === -1 || endIndex === -1 || endIndex <= startIndex) {
-    return content;
-  }
-
-  const extractedContent = content
-    .substring(startIndex + startTag.length, endIndex)
-    .trim();
-
-  // Convert markdown to HTML for consistency with the editor
-  return convertMarkdownToHtml(extractedContent);
-};
-
-const convertMarkdownToHtml = (markdown: string): string => {
-  // Simple markdown to HTML conversion for common elements
-  let html = markdown;
-
-  // Headers
-  html = html.replace(/^# (.*$)/gm, "<h1>$1</h1>");
-  html = html.replace(/^## (.*$)/gm, "<h2>$1</h2>");
-  html = html.replace(/^### (.*$)/gm, "<h3>$1</h3>");
-  html = html.replace(/^#### (.*$)/gm, "<h4>$1</h4>");
-  html = html.replace(/^##### (.*$)/gm, "<h5>$1</h5>");
-  html = html.replace(/^###### (.*$)/gm, "<h6>$1</h6>");
-
-  // Bold and italic
-  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
-
-  // Links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-
-  // Code blocks
-  html = html.replace(/```([\s\S]*?)```/g, "<pre><code>$1</code></pre>");
-  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
-
-  // Lists
-  const lines = html.split("\n");
-  let inList = false;
-  let listType = "";
-  const processedLines = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const bulletMatch = line.match(/^[\s]*[-*+]\s+(.*)$/);
-    const numberedMatch = line.match(/^[\s]*\d+\.\s+(.*)$/);
-
-    if (bulletMatch) {
-      if (!inList || listType !== "ul") {
-        if (inList) processedLines.push(`</${listType}>`);
-        processedLines.push("<ul>");
-        inList = true;
-        listType = "ul";
-      }
-      processedLines.push(`<li>${bulletMatch[1]}</li>`);
-    } else if (numberedMatch) {
-      if (!inList || listType !== "ol") {
-        if (inList) processedLines.push(`</${listType}>`);
-        processedLines.push("<ol>");
-        inList = true;
-        listType = "ol";
-      }
-      processedLines.push(`<li>${numberedMatch[1]}</li>`);
-    } else {
-      if (inList) {
-        processedLines.push(`</${listType}>`);
-        inList = false;
-        listType = "";
-      }
-      if (line.trim()) {
-        processedLines.push(`<p>${line}</p>`);
-      }
-    }
-  }
-
-  if (inList) {
-    processedLines.push(`</${listType}>`);
-  }
-
-  return processedLines.join("\n");
-};
 
 const calculateCost = (
   inputTokens: number,
@@ -142,7 +52,7 @@ const createUserMessage = (content: string): ConversationMessage => ({
 });
 
 const createAssistantMessage = (
-  content: string,
+  content: string | PRDContent,
   inputTokens?: number,
   outputTokens?: number,
   generationTime?: number,
@@ -248,7 +158,7 @@ const useSessionManagement = (
 
 interface InteractivePRDPanelProps {
   prd: PRD;
-  onApplyContent: (content: string) => void;
+  onApplyContent: (content: PRDContent) => void;
 }
 
 export function InteractivePRDPanel({
@@ -317,9 +227,9 @@ export function InteractivePRDPanel({
       console.log(`=== AI Response Received for ${requestId} ===`);
       console.log("Result:", result);
       console.log("Generated content:", result.generated_content);
-      console.log("Content length:", result.generated_content?.length || 0);
+      console.log("Content length:", result.generated_content ? JSON.stringify(result.generated_content).length : 0);
 
-      if (!result.generated_content || result.generated_content.trim() === "") {
+      if (!result.generated_content) {
         console.error(
           `Empty response received from AI for request ${requestId}`
         );
@@ -364,9 +274,8 @@ export function InteractivePRDPanel({
   const handleContinueInteractiveSession = () =>
     handleInteractiveSession(false);
 
-  const handleApplyInteractiveContent = (content: string) => {
-    const prdContent = extractPrdContent(content);
-    onApplyContent(prdContent);
+  const handleApplyInteractiveContent = (content: PRDContent) => {
+    onApplyContent(content);
   };
 
   const handleRetry = () => {
@@ -676,7 +585,7 @@ function SettingsPanel({
 interface MessageProps {
   message: ConversationMessage;
   showApplyButton?: boolean;
-  onApplyContent: (content: string) => void;
+  onApplyContent: (content: PRDContent) => void;
   onRetry: () => void;
   getCurrentProvider: () => LLMProviderConfig;
   selectedModel?: string;
@@ -707,6 +616,13 @@ function MessageComponent({
         )
       : 0;
 
+  const contentAsPRD = typeof message.content === 'object' ? message.content as PRDContent : null;
+  const contentAsString = typeof message.content === 'string' ? message.content : contentAsPRD ?
+    `# ${contentAsPRD.title}\n\n**Summary:** ${contentAsPRD.summary}\n\n` +
+    contentAsPRD.sections.map(s => `## ${s.title}\n\n${s.content}`).join('\n\n')
+    : '';
+
+
   return (
     <div
       key={message.timestamp}
@@ -732,7 +648,7 @@ function MessageComponent({
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight]}
           >
-            {message.content}
+            {contentAsString}
           </ReactMarkdown>
           {message.has_error && (
             <div className="w-full flex justify-end">
@@ -763,9 +679,9 @@ function MessageComponent({
           message.role === "assistant" &&
           !isLoading &&
           isLastMessage &&
-          hasPrdTags(message.content) && (
+          contentAsPRD && (
             <div className="mt-3 pt-3 border-t border-border flex gap-2">
-              <Button size="sm" onClick={() => onApplyContent(message.content)}>
+              <Button size="sm" onClick={() => onApplyContent(contentAsPRD)}>
                 Apply to PRD
               </Button>
             </div>

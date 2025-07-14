@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Bot, Wand2, MessageSquare } from "lucide-react";
-import type { PRD } from "@/types";
+import type { PRD, PRDContent } from "@/types";
 import { InteractivePRDPanel } from "./InteractivePRDPanel";
 import { CritiquePanel } from "./CritiquePanel";
 
 interface AIAssistantPanelProps {
   prd: PRD;
-  onApplyContent: (content: string) => void;
+  onApplyContent: (content: PRDContent) => void;
 }
 
 export function AIAssistantPanel({
