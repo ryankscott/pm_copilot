@@ -1,9 +1,6 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import { generateObject, CoreMessage } from "ai";
 import { z } from "zod";
@@ -314,7 +311,10 @@ export const generateContent = async (
     );
 
     console.log("AI generation completed in", generationTime, "seconds");
-    console.log("Generated content length:", JSON.stringify(result.object).length);
+    console.log(
+      "Generated content length:",
+      JSON.stringify(result.object).length
+    );
     console.log(
       "Generated content preview:",
       JSON.stringify(result.object).substring(0, 200) + "..."
