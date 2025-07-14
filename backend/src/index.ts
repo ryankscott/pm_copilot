@@ -19,6 +19,12 @@ import {
   submitFeedbackEnhanced,
 } from "./handlers";
 import { flushLangfuse } from "./langfuse";
+import { validate } from "./middleware/validation";
+import {
+  PRD,
+  GenerateContentRequest,
+  CritiqueRequest,
+} from "./generated/zod-schemas";
 
 const app = express();
 const port = 8080;
@@ -53,12 +59,20 @@ app.get("/test", (req, res) => {
 initDB("prds.db")
   .then((db) => {
     app.get("/prds", getPrds(db));
-    app.post("/prds", createPrd(db));
+    app.post("/prds", validate(PRD), createPrd(db));
     app.get("/prds/:id", getPrdById(db));
-    app.put("/prds/:id", updatePrd(db));
+    app.put("/prds/:id", validate(PRD), updatePrd(db));
     app.delete("/prds/:id", deletePrd(db));
-    app.post("/prds/:id/generate", generatePrdContent(db));
-    app.post("/prds/:id/critique", critiquePrdContent(db));
+    app.post(
+      "/prds/:id/generate",
+      validate(GenerateContentRequest),
+      generatePrdContent(db)
+    );
+    app.post(
+      "/prds/:id/critique",
+      validate(CritiqueRequest),
+      critiquePrdContent(db)
+    );
 
     // Interactive session endpoints
     app.get("/prds/:prdId/session", getSession(db));

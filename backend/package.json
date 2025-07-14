@@ -5,7 +5,8 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "generate": "npx openapi-typescript-codegen --input openapi.yaml --output src/generated --client fetch"
+    "generate": "npx openapi-typescript-codegen --input openapi.yaml --output src/generated --client fetch && npm run generate:zod",
+    "generate:zod": "ts-node src/generate-zod-schemas.ts"
   },
   "keywords": [],
   "author": "",
@@ -29,7 +30,7 @@
     "uuid": "^11.1.0",
     "vitest": "^3.2.4",
     "zod": "^3.25.67",
-    "langfuse": "^3.38.4"
+    "zod-openapi": "^3.2.1"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.6",
