@@ -5,8 +5,7 @@
   "scripts": {
     "start": "ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "generate": "npx openapi-typescript-codegen --input openapi.yaml --output src/generated --client fetch && npm run generate:zod",
-    "generate:zod": "ts-node src/generate-zod-schemas.ts"
+    "generate": "npx openapi-typescript-codegen --input openapi.yaml --output src/generated --client fetch"
   },
   "keywords": [],
   "author": "",
@@ -26,11 +25,9 @@
     "langfuse": "^3.38.3",
     "ollama-ai-provider": "^1.2.0",
     "openapi-backend": "^5.12.0",
-    "openapi-zod-client": "^1.18.3",
     "sqlite3": "^5.1.7",
     "uuid": "^11.1.0",
-    "vitest": "^3.2.4",
-    "zod": "^3.25.67"
+    "vitest": "^3.2.4"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.6",

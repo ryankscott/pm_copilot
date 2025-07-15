@@ -19,12 +19,6 @@ import {
   submitFeedbackEnhanced,
 } from "./handlers";
 import { flushLangfuse } from "./langfuse";
-import { validate } from "./middleware/validation";
-import {
-  PRD,
-  GenerateContentRequest,
-  CritiqueRequest,
-} from "./generated/zod-schemas";
 
 const app = express();
 const port = 8080;
@@ -35,14 +29,14 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      
+
       // Allow any localhost port for development
       if (origin.match(/^http:\/\/localhost:\d+$/)) {
         return callback(null, true);
       }
-      
+
       // Reject other origins
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
@@ -59,20 +53,12 @@ app.get("/test", (req, res) => {
 initDB("prds.db")
   .then((db) => {
     app.get("/prds", getPrds(db));
-    app.post("/prds", validate(PRD), createPrd(db));
+    app.post("/prds", createPrd(db));
     app.get("/prds/:id", getPrdById(db));
-    app.put("/prds/:id", validate(PRD), updatePrd(db));
+    app.put("/prds/:id", updatePrd(db));
     app.delete("/prds/:id", deletePrd(db));
-    app.post(
-      "/prds/:id/generate",
-      validate(GenerateContentRequest),
-      generatePrdContent(db)
-    );
-    app.post(
-      "/prds/:id/critique",
-      validate(CritiqueRequest),
-      critiquePrdContent(db)
-    );
+    app.post("/prds/:id/generate", generatePrdContent(db));
+    app.post("/prds/:id/critique", critiquePrdContent(db));
 
     // Interactive session endpoints
     app.get("/prds/:prdId/session", getSession(db));
