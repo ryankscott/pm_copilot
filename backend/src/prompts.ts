@@ -35,7 +35,9 @@ export const getInteractiveSystemPrompt = async (
 
   try {
     // Fetch the raw prompt template from Langfuse by its unique name
-    const prompt = await langfuse.getPrompt("interactive-prd-system-prompt");
+    const prompt = await langfuse.getPrompt(
+      "interactive-prd-system-prompt-template"
+    );
 
     // Compile the prompt with dynamic variables
     const compiledPrompt = prompt.compile({
@@ -101,7 +103,9 @@ export const getCritiqueUserPrompt = async (
 ): Promise<string> => {
   const { existing_content } = request;
   try {
-    const prompt = await langfuse.getPrompt("prd-critique-user-prompt");
+    const prompt = await langfuse.getPrompt(
+      "prd-critique-user-prompt-template"
+    );
     const compiledPrompt = prompt.compile({
       existingPrdContent: existing_content || "",
     });
