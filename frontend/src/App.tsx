@@ -1,4 +1,4 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -10,8 +10,7 @@ function App({ children }: AppProps) {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarTrigger />
-      {children}
+      <div className="border-l-1 w-full">{children}</div>
       <Toaster />
     </SidebarProvider>
   );

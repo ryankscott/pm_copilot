@@ -6,6 +6,16 @@ export interface PRD {
   updatedAt: string;
 }
 
+export interface Template {
+  id: string;
+  title: string;
+  description: string;
+  content: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface PRDContent {
   title: string;
   summary: string;

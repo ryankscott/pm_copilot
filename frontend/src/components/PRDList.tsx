@@ -1,7 +1,6 @@
 import { useMatchRoute, useRouter } from "@tanstack/react-router";
-import { formatDistanceToNow } from "date-fns";
-import { Card, CardContent, CardHeader } from "./ui/card";
-import { Calendar, Plus, Loader2, Trash2 } from "lucide-react";
+import { Card, CardHeader } from "./ui/card";
+import { Plus, Loader2, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { usePrds, useCreatePrd, useDeletePrd } from "@/hooks/use-prd-queries";
@@ -57,9 +56,9 @@ export function PRDList() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col space-y-2 gap-1 p-4">
-        <Button disabled variant="outline" className="mb-4">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+      <div className="flex flex-col space-y-2 gap-1 px-4">
+        <Button disabled variant="outline" className="mb-2 h-8 text-sm">
+          <Loader2 className="w-3 h-3 animate-spin mr-2" />
           New PRD
         </Button>
         <div className="flex items-center justify-center p-4">
@@ -70,17 +69,17 @@ export function PRDList() {
   }
 
   return (
-    <div className="flex flex-col space-y-2 gap-1 p-4">
+    <div className="flex flex-col space-y-1 px-4">
       <Button
         onClick={handleCreatePrd}
         disabled={createPrd.isPending}
         variant="outline"
-        className="mb-4"
+        className="mb-4 h-8 text-sm"
       >
         {createPrd.isPending ? (
-          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          <Loader2 className="w-3 h-3 animate-spin mr-2" />
         ) : (
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3 h-3 mr-2" />
         )}
         New PRD
       </Button>
@@ -89,33 +88,23 @@ export function PRDList() {
           <Link to={"/prd/$prdId"} key={prd.id} params={{ prdId: prd.id }}>
             <Card
               key={prd.id}
-              className={`my-1 min-w-0 flex-1 ${
-                prd.id === currentPrdId ? "bg-primary-100" : "bg-background"
+              className={`py-2 flex-1 my-0.5 hover:shadow-lg transition-colors group ${
+                prd.id === currentPrdId
+                  ? "bg-background/10 shadow-lg"
+                  : "bg-background"
               }`}
             >
-              <CardHeader>
-                <div className="flex flex-row items-center justify-between">
-                  {prd.title}
-                  <div
-                    className="rounded-xl hover:bg-gray-300 p-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleDeletePrd(prd.id);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 text-muted-foreground" />
-                  </div>
+              <CardHeader className="px-4 align-middle">
+                <div className="flex flex-row items-center justify-between align-middle">
+                  <h4 className="text-sm font-medium leading-tight truncate pr-2">
+                    {prd.title}
+                  </h4>
+                  <Trash2
+                    className="w-3 h-3 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeletePrd(prd.id)}
+                  />
                 </div>
               </CardHeader>
-              <CardContent>
-                {/* Metadata */}
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  <p className="text-xs text-muted-foreground">
-                    Updated {formatDistanceToNow(new Date(prd.updatedAt))} ago
-                  </p>
-                </div>
-              </CardContent>
             </Card>
           </Link>
         ))}

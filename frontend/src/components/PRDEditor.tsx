@@ -178,7 +178,7 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
       <div className="flex-1 flex flex-col w-full">
         <div className="border-b border-border p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 pl-4">
               <FileText className="w-5 h-5 text-muted-foreground" />
               <EditableHeader value={title} onChange={handleTitleChange} />
             </div>
