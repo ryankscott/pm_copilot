@@ -425,9 +425,7 @@ export function ChatPage() {
                 {prdContexts.map((ctx) => (
                   <Badge
                     key={ctx.prd.id}
-                    className={`flex
-                rounded-none
-                items-center gap-1 p-0 m-0 pl-2`}
+                    className="flex rounded-none items-center gap-1 p-0 m-0 pl-2"
                   >
                     <FileText className="w-3 h-3" />
                     {ctx.prd.title}
