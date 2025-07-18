@@ -168,6 +168,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /prds/{id}/question:
+    post:
+      summary: Ask questions about a PRD
+      description: Ask questions about a specific PRD and get AI-powered answers with context
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The ID of the PRD to ask questions about
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionRequest"
+      responses:
+        "200":
+          description: Successfully answered the question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionResponse"
+        "400":
+          description: Bad request - invalid input parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: PRD not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error - AI question answering failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /test-provider:
     post:
       summary: Test LLM Provider Connection
@@ -331,8 +373,6 @@ components:
           enum: ["brief", "standard", "detailed", "comprehensive"]
           default: "standard"
           description: The desired length/detail level of generated content
-        existing_content:
-          description: Existing content to enhance or build upon
         conversation_history:
           type: array
           items:
@@ -348,8 +388,6 @@ components:
     CritiqueRequest:
       type: object
       properties:
-        existing_content:
-          description: Existing content to enhance or build upon
         focus_areas:
           type: array
           items:
@@ -386,6 +424,31 @@ components:
         model:
           type: string
           description: Specific model to use for critique
+          example: "gpt-4o"
+    QuestionRequest:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          description: The question to ask about the PRD
+          example: "What are the main user personas for this product?"
+        context:
+          type: string
+          description: Additional context for the question
+          example: "Focus on the mobile app requirements"
+        conversation_history:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConversationMessage"
+          description: Previous conversation messages for interactive sessions
+        provider:
+          $ref: "#/components/schemas/LLMProviderConfig"
+          description: LLM provider configuration to use for answering
+        model:
+          type: string
+          description: Specific model to use for answering
           example: "gpt-4o"
     ConversationMessage:
       type: object
@@ -463,6 +526,39 @@ components:
           type: number
           format: float
           description: Time taken to generate critique in seconds
+    QuestionResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+          description: The AI-generated answer to the question
+        input_tokens:
+          type: integer
+          description: Number of input tokens used
+        output_tokens:
+          type: integer
+          description: Number of output tokens generated
+        tokens_used:
+          type: integer
+          description: Total number of tokens consumed
+        model_used:
+          type: string
+          description: The AI model used for answering
+          example: "gpt-4"
+        generation_time:
+          type: number
+          format: float
+          description: Time taken to generate answer in seconds
+        related_sections:
+          type: array
+          items:
+            type: string
+          description: Sections of the PRD that are most relevant to the question
+        follow_up_questions:
+          type: array
+          items:
+            type: string
+          description: Suggested follow-up questions
     PRDContent:
       type: object
       properties:

@@ -10,7 +10,13 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { PRDList } from "./PRDList";
-import { Settings2, Github, FileText, Layout } from "lucide-react";
+import {
+  Settings2,
+  Github,
+  FileText,
+  Layout,
+  MessageSquare,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -21,7 +27,7 @@ export function AppSidebar() {
   const { success } = useToast();
   const { state } = useSidebar();
   const [selectedSection, setSelectedSection] = useState<
-    "documents" | "templates"
+    "documents" | "templates" | "chat"
   >("documents");
   const { data: prds } = usePrds();
 
@@ -88,6 +94,19 @@ export function AppSidebar() {
                   >
                     {templatesCount}
                   </span>
+                </SidebarMenuButton>
+                <SidebarMenuButton
+                  asChild
+                  className={`flex items-center gap-2 w-full justify-start ${
+                    selectedSection === "chat"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <Link to="/chat" onClick={() => setSelectedSection("chat")}>
+                    <MessageSquare className="w-4 h-4" />
+                    <span>AI Chat</span>
+                  </Link>
                 </SidebarMenuButton>
               </div>
             </SidebarGroupContent>

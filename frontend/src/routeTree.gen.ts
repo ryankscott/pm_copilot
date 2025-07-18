@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as PrdIndexRouteImport } from './routes/prd/index'
+import { Route as ChatIndexRouteImport } from './routes/chat/index'
 import { Route as PrdPrdIdRouteImport } from './routes/prd/$prdId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -29,6 +30,11 @@ const PrdIndexRoute = PrdIndexRouteImport.update({
   path: '/prd/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChatIndexRoute = ChatIndexRouteImport.update({
+  id: '/chat/',
+  path: '/chat/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrdPrdIdRoute = PrdPrdIdRouteImport.update({
   id: '/prd/$prdId',
   path: '/prd/$prdId',
@@ -38,12 +44,14 @@ const PrdPrdIdRoute = PrdPrdIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/prd/$prdId': typeof PrdPrdIdRoute
+  '/chat': typeof ChatIndexRoute
   '/prd': typeof PrdIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/prd/$prdId': typeof PrdPrdIdRoute
+  '/chat': typeof ChatIndexRoute
   '/prd': typeof PrdIndexRoute
   '/settings': typeof SettingsIndexRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/prd/$prdId': typeof PrdPrdIdRoute
+  '/chat/': typeof ChatIndexRoute
   '/prd/': typeof PrdIndexRoute
   '/settings/': typeof SettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/prd/$prdId' | '/prd' | '/settings'
+  fullPaths: '/' | '/prd/$prdId' | '/chat' | '/prd' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/prd/$prdId' | '/prd' | '/settings'
-  id: '__root__' | '/' | '/prd/$prdId' | '/prd/' | '/settings/'
+  to: '/' | '/prd/$prdId' | '/chat' | '/prd' | '/settings'
+  id: '__root__' | '/' | '/prd/$prdId' | '/chat/' | '/prd/' | '/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PrdPrdIdRoute: typeof PrdPrdIdRoute
+  ChatIndexRoute: typeof ChatIndexRoute
   PrdIndexRoute: typeof PrdIndexRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
 }
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chat/': {
+      id: '/chat/'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof ChatIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/prd/$prdId': {
       id: '/prd/$prdId'
       path: '/prd/$prdId'
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PrdPrdIdRoute: PrdPrdIdRoute,
+  ChatIndexRoute: ChatIndexRoute,
   PrdIndexRoute: PrdIndexRoute,
   SettingsIndexRoute: SettingsIndexRoute,
 }

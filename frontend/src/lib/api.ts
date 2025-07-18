@@ -6,6 +6,8 @@ import type {
   LLMProviderConfig,
   CritiqueRequest,
   CritiqueResponse,
+  QuestionRequest,
+  QuestionResponse,
   LLMModel,
 } from "@/types";
 
@@ -139,6 +141,19 @@ export const prdApi = {
   ): Promise<CritiqueResponse & { langfuseData?: LangfuseData }> =>
     fetchApi<CritiqueResponse & { langfuseData?: LangfuseData }>(
       `/prds/${id}/critique`,
+      {
+        method: "POST",
+        body: JSON.stringify(request),
+      }
+    ),
+
+  // Ask questions about PRD
+  question: (
+    id: string,
+    request: QuestionRequest
+  ): Promise<QuestionResponse & { langfuseData?: LangfuseData }> =>
+    fetchApi<QuestionResponse & { langfuseData?: LangfuseData }>(
+      `/prds/${id}/question`,
       {
         method: "POST",
         body: JSON.stringify(request),

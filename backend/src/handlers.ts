@@ -1,7 +1,12 @@
 import { Request, Response } from "express";
 import sqlite3 from "sqlite3";
 import { v4 as uuidv4 } from "uuid";
-import { GenerateContentRequest, CritiqueRequest } from "./generated";
+import {
+  GenerateContentRequest,
+  CritiqueRequest,
+  QuestionRequest,
+  PRD,
+} from "./generated";
 import { aiService } from "./aiService";
 import {
   submitFeedback,
@@ -252,23 +257,30 @@ export const critiquePrdContent =
     console.log("Depth:", critiqueRequest.depth);
     console.log("Provider:", critiqueRequest.provider?.type);
     console.log("Model:", critiqueRequest.model);
-    console.log("Has existing content:", !!critiqueRequest.existing_content);
-
-    // Validate required fields
-    if (!critiqueRequest.existing_content) {
-      res.status(400).json({
-        message: "Missing required field: existing_content",
-        code: "VALIDATION_ERROR",
-      });
-      return;
-    }
 
     try {
+      // Get the PRD content from the database
+      const prd = await new Promise<PRD>((resolve, reject) => {
+        db.get("SELECT * FROM prds WHERE id = ?", [id], (err, row) => {
+          if (err) reject(err);
+          else resolve(row as PRD);
+        });
+      });
+
+      if (!prd) {
+        res.status(404).json({
+          message: "PRD not found",
+          code: "PRD_NOT_FOUND",
+        });
+        return;
+      }
+
       const startTime = Date.now();
 
       // Use real AI service for critique
       const critiqueResult = await aiService.critiquePRD(
         critiqueRequest,
+        prd.content ?? "",
         id,
         userId,
         sessionId
@@ -409,6 +421,87 @@ export const submitFeedbackHandler = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const answerPrdQuestion =
+  (db: sqlite3.Database) => async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const questionRequest: QuestionRequest = req.body;
+
+    // Extract user information from headers or body
+    const userId = (req.headers["x-user-id"] as string) || "anonymous";
+    const sessionId =
+      (req.headers["x-session-id"] as string) ||
+      `question-session-${Date.now()}`;
+
+    console.log("=== PRD Question Request ===");
+    console.log("PRD ID:", id);
+    console.log("User ID:", userId);
+    console.log("Session ID:", sessionId);
+    console.log("Question:", questionRequest.question);
+    console.log("Context:", questionRequest.context);
+    console.log("Provider:", questionRequest.provider?.type);
+    console.log("Model:", questionRequest.model);
+
+    // Validate required fields
+    if (!questionRequest.question) {
+      res.status(400).json({
+        message: "Missing required field: question",
+        code: "VALIDATION_ERROR",
+      });
+      return;
+    }
+
+    try {
+      // Get the PRD content first
+      const prd = await new Promise<any>((resolve, reject) => {
+        db.get("SELECT * FROM prds WHERE id = ?", [id], (err, row) => {
+          if (err) reject(err);
+          else resolve(row);
+        });
+      });
+
+      if (!prd) {
+        res.status(404).json({
+          message: "PRD not found",
+          code: "PRD_NOT_FOUND",
+        });
+        return;
+      }
+
+      const startTime = Date.now();
+
+      // Use real AI service for question answering
+      const questionResult = await aiService.answerQuestion(
+        questionRequest,
+        prd.content,
+        id,
+        userId,
+        sessionId
+      );
+
+      const endTime = Date.now();
+      const generationTime = (endTime - startTime) / 1000;
+
+      // Add generation metadata
+      const response = {
+        ...questionResult,
+        generation_time: generationTime,
+        model_used: questionRequest.model,
+        prd_id: id,
+        // Include Langfuse data for frontend to use for feedback
+        langfuseData: questionResult.langfuseData,
+      };
+
+      res.json(response);
+    } catch (error) {
+      console.error("PRD question answering failed:", error);
+      res.status(500).json({
+        message: "AI question answering failed",
+        code: "AI_QUESTION_ERROR",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  };
 
 export const testProvider = async (req: Request, res: Response) => {
   const { provider, model } = req.body;

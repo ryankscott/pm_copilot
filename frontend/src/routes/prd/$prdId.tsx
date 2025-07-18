@@ -29,10 +29,6 @@ function RouteComponent() {
     }
   };
 
-  const handleSave = () => {
-    console.log("Save triggered - changes will be automatically saved");
-  };
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -57,7 +53,5 @@ function RouteComponent() {
     );
   }
 
-  return (
-    <PRDEditor prd={prd} onSave={handleSave} onUpdatePrd={handleUpdatePrd} />
-  );
+  return <PRDEditor prd={prd} onUpdatePrd={handleUpdatePrd} />;
 }

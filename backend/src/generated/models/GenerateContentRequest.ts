@@ -22,10 +22,6 @@ export type GenerateContentRequest = {
      */
     length?: GenerateContentRequest.length;
     /**
-     * Existing content to enhance or build upon
-     */
-    existing_content?: any;
-    /**
      * Previous conversation messages for interactive sessions
      */
     conversation_history?: Array<ConversationMessage>;

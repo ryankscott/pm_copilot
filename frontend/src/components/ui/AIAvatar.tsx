@@ -9,9 +9,14 @@ import GeminiLogo from "@/assets/gemini.svg";
 interface AIAvatarProps {
   provider?: string;
   model?: string;
+  orientation?: "vertical" | "horizontal";
 }
 
-const AIAvatar: React.FC<AIAvatarProps> = ({ provider, model }) => {
+const AIAvatar: React.FC<AIAvatarProps> = ({
+  provider,
+  model,
+  orientation = "horizontal",
+}) => {
   const getLogo = () => {
     if (model) {
       if (model.toLowerCase().includes("claude")) return ClaudeLogo;
@@ -43,7 +48,11 @@ const AIAvatar: React.FC<AIAvatarProps> = ({ provider, model }) => {
   const LogoComponent = getLogo();
 
   return (
-    <div className={"flex flex-row gap-2 justify-center items-center"}>
+    <div
+      className={`flex ${
+        orientation === "horizontal" ? "flex-row" : "flex-col"
+      } gap-2 justify-center items-center`}
+    >
       <img
         src={LogoComponent}
         alt={`${getModelName()} logo`}

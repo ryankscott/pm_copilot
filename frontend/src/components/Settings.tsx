@@ -57,8 +57,13 @@ const PROVIDER_INFO: Record<
 };
 
 function ProviderCard({ type }: { type: ProviderType }) {
-  const { settings, updateProvider, setApiKey, isProviderConfigured, fetchOllamaModels } =
-    useLLMStore();
+  const {
+    settings,
+    updateProvider,
+    setApiKey,
+    isProviderConfigured,
+    fetchOllamaModels,
+  } = useLLMStore();
   const [showKey, setShowKey] = useState(false);
   const [testStatus, setTestStatus] = useState<
     "idle" | "testing" | "success" | "error"
@@ -114,7 +119,7 @@ function ProviderCard({ type }: { type: ProviderType }) {
       // Get a default model for the provider
       const defaultModel = provider.models[0]?.id || "default";
 
-      const result = await providerApi.testConnection(provider, defaultModel);
+      const result = await providerApi.test(provider, defaultModel);
 
       if (result.success) {
         setTestStatus("success");
@@ -271,7 +276,8 @@ function ProviderCard({ type }: { type: ProviderType }) {
 }
 
 function ModelSelection() {
-  const { settings, setSelectedProvider, setSelectedModel, fetchOllamaModels } = useLLMStore();
+  const { settings, setSelectedProvider, setSelectedModel, fetchOllamaModels } =
+    useLLMStore();
   const currentProvider = settings.providers[settings.selectedProvider];
   const availableProviders = Object.entries(settings.providers)
     .filter(([, provider]) => provider.isConfigured)
@@ -280,10 +286,15 @@ function ModelSelection() {
   // Fetch Ollama models when the provider is selected
   useEffect(() => {
     if (settings.selectedProvider === "ollama") {
-      const baseURL = settings.providers.ollama.baseURL || "http://localhost:11434";
+      const baseURL =
+        settings.providers.ollama.baseURL || "http://localhost:11434";
       fetchOllamaModels(baseURL);
     }
-  }, [settings.selectedProvider, settings.providers.ollama.baseURL, fetchOllamaModels]);
+  }, [
+    settings.selectedProvider,
+    settings.providers.ollama.baseURL,
+    fetchOllamaModels,
+  ]);
 
   return (
     <Card className="p-6 max-w-md">

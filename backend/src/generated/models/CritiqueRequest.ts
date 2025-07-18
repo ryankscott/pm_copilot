@@ -5,10 +5,6 @@
 import type { LLMProviderConfig } from './LLMProviderConfig';
 export type CritiqueRequest = {
     /**
-     * Existing content to enhance or build upon
-     */
-    existing_content?: any;
-    /**
      * Specific areas to focus the critique on
      */
     focus_areas?: Array<'completeness' | 'clarity' | 'structure' | 'feasibility' | 'requirements' | 'user_experience' | 'technical' | 'business_value'>;

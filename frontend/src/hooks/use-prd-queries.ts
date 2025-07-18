@@ -18,7 +18,10 @@ export function usePrds() {
   return useQuery({
     queryKey: prdKeys.list(),
     queryFn: prdApi.getAll,
-    select: (data) => toCamelCase(data) as PRD[],
+    select: (data) =>
+      toCamelCase(
+        data as unknown as Record<string, unknown>[]
+      ) as unknown as PRD[],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -27,7 +30,8 @@ export function usePrd(id: string) {
   return useQuery({
     queryKey: prdKeys.detail(id),
     queryFn: () => prdApi.getById(id),
-    select: (data) => toCamelCase(data) as PRD,
+    select: (data) =>
+      toCamelCase(data as unknown as Record<string, unknown>) as unknown as PRD,
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

@@ -1,4 +1,8 @@
-import { CritiqueRequest, GenerateContentRequest } from "./generated";
+import {
+  CritiqueRequest,
+  GenerateContentRequest,
+  QuestionRequest,
+} from "./generated";
 import { langfuse } from "./langfuse";
 
 export interface PromptConfig {
@@ -99,15 +103,15 @@ export const getCritiqueSystemPrompt = async (
 };
 
 export const getCritiqueUserPrompt = async (
-  request: CritiqueRequest
+  request: CritiqueRequest,
+  prdContent: string
 ): Promise<string> => {
-  const { existing_content } = request;
   try {
     const prompt = await langfuse.getPrompt(
       "prd-critique-user-prompt-template"
     );
     const compiledPrompt = prompt.compile({
-      existingPrdContent: existing_content || "",
+      existingPrdContent: prdContent || "",
     });
     return compiledPrompt as string;
   } catch (error) {
@@ -120,5 +124,83 @@ export const getCritiqueUserPrompt = async (
         error instanceof Error ? error.message : String(error)
       }`
     );
+  }
+};
+
+/**
+ * Fetches and compiles the system prompt for PRD question answering from Langfuse.
+ * @param request The question request.
+ * @returns The compiled system prompt string.
+ */
+export const getQuestionSystemPrompt = async (
+  request: QuestionRequest
+): Promise<string> => {
+  try {
+    // Fetch the raw prompt template from Langfuse by its unique name
+    const prompt = await langfuse.getPrompt(
+      "prd-question-system-prompt-template"
+    );
+
+    // Compile the prompt with dynamic variables
+    const compiledPrompt = prompt.compile({
+      context: request.context || "",
+    });
+
+    // The compile method for text prompts returns a string
+    return compiledPrompt as string;
+  } catch (error) {
+    console.error(
+      "Failed to fetch or compile 'prd-question-system-prompt-template' from Langfuse:",
+      error
+    );
+    // Fallback prompt if Langfuse is not available
+    return `You are an expert Product Manager and Technical Writer assistant. Your role is to answer questions about Product Requirements Documents (PRDs) with precision and clarity.
+
+When answering questions about a PRD:
+1. Base your answers on the specific content provided in the PRD
+2. If information is not explicitly stated in the PRD, clearly indicate this
+3. Provide relevant context and explanations
+4. Suggest related sections or topics that might be relevant
+5. Be concise but comprehensive in your responses
+6. If the question requires clarification, ask follow-up questions
+
+${request.context ? `Additional context: ${request.context}` : ""}
+
+Always maintain a professional tone and focus on being helpful and accurate.`;
+  }
+};
+
+/**
+ * Fetches and compiles the user prompt for PRD question answering from Langfuse.
+ * @param request The question request.
+ * @param prdContent The PRD content to ask questions about.
+ * @returns The compiled user prompt string.
+ */
+export const getQuestionUserPrompt = async (
+  request: QuestionRequest,
+  prdContent: string
+): Promise<string> => {
+  try {
+    const prompt = await langfuse.getPrompt(
+      "prd-question-user-prompt-template"
+    );
+    const compiledPrompt = prompt.compile({
+      prdContent: prdContent,
+      question: request.question,
+    });
+    return compiledPrompt as string;
+  } catch (error) {
+    console.error(
+      "Failed to fetch or compile 'prd-question-user-prompt-template' from Langfuse:",
+      error
+    );
+    // Fallback prompt if Langfuse is not available
+    return `Here is the PRD content:
+
+${prdContent}
+
+Question: ${request.question}
+
+Please answer the question based on the PRD content provided above.`;
   }
 };
