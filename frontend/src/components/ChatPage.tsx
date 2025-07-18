@@ -506,7 +506,7 @@ export function ChatPage() {
 
         <div
           className={`flex flex-row gap-2 ${
-            chatMode != "create" ? "justify-between" : "justify-end"
+            chatMode !== "create" ? "justify-between" : "justify-end"
           } py-2 pt-4 relative`}
         >
           {chatMode != "create" && (
