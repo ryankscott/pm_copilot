@@ -164,3 +164,27 @@ export interface LangfuseData {
   traceId: string;
   generationId: string;
 }
+
+// Question-related types
+export interface QuestionRequest {
+  question: string;
+  context?: string;
+  conversation_history?: ConversationMessage[];
+  provider?: LLMProviderConfig;
+  model?: string;
+}
+
+export interface QuestionResponse {
+  answer: string;
+  input_tokens?: number;
+  output_tokens?: number;
+  tokens_used?: number;
+  model_used?: string;
+  generation_time?: number;
+  related_sections?: string[];
+  follow_up_questions?: string[];
+  langfuseData?: {
+    traceId: string;
+    generationId: string;
+  };
+}

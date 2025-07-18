@@ -213,7 +213,7 @@ export function InteractivePRDPanel({
 
     try {
       const request: GenerateContentRequest = {
-        prompt: userMessage.content,
+        prompt: userMessage.content as string,
         tone: interactiveSettings.tone,
         length: interactiveSettings.length,
         existing_content: prd.content,
@@ -227,7 +227,12 @@ export function InteractivePRDPanel({
       console.log(`=== AI Response Received for ${requestId} ===`);
       console.log("Result:", result);
       console.log("Generated content:", result.generated_content);
-      console.log("Content length:", result.generated_content ? JSON.stringify(result.generated_content).length : 0);
+      console.log(
+        "Content length:",
+        result.generated_content
+          ? JSON.stringify(result.generated_content).length
+          : 0
+      );
 
       if (!result.generated_content) {
         console.error(
@@ -308,7 +313,7 @@ export function InteractivePRDPanel({
         );
 
         setInteractiveMessages(messagesWithoutLastUser);
-        setInteractiveInput(lastUserMessage.content);
+        setInteractiveInput(lastUserMessage.content as string);
 
         // Directly retry with the content - no need for setTimeout
         // The handleInteractiveSession will add the user message again
@@ -616,12 +621,19 @@ function MessageComponent({
         )
       : 0;
 
-  const contentAsPRD = typeof message.content === 'object' ? message.content as PRDContent : null;
-  const contentAsString = typeof message.content === 'string' ? message.content : contentAsPRD ?
-    `# ${contentAsPRD.title}\n\n**Summary:** ${contentAsPRD.summary}\n\n` +
-    contentAsPRD.sections.map(s => `## ${s.title}\n\n${s.content}`).join('\n\n')
-    : '';
-
+  const contentAsPRD =
+    typeof message.content === "object"
+      ? (message.content as PRDContent)
+      : null;
+  const contentAsString =
+    typeof message.content === "string"
+      ? message.content
+      : contentAsPRD
+        ? `# ${contentAsPRD.title}\n\n**Summary:** ${contentAsPRD.summary}\n\n` +
+          contentAsPRD.sections
+            .map((s) => `## ${s.title}\n\n${s.content}`)
+            .join("\n\n")
+        : "";
 
   return (
     <div

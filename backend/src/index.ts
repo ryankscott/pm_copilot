@@ -7,6 +7,7 @@ import {
   deletePrd,
   generatePrdContent,
   critiquePrdContent,
+  answerPrdQuestion,
   getPrdById,
   getPrds,
   updatePrd,
@@ -59,6 +60,7 @@ initDB("prds.db")
     app.delete("/prds/:id", deletePrd(db));
     app.post("/prds/:id/generate", generatePrdContent(db));
     app.post("/prds/:id/critique", critiquePrdContent(db));
+    app.post("/prds/:id/question", answerPrdQuestion(db));
 
     // Interactive session endpoints
     app.get("/prds/:prdId/session", getSession(db));

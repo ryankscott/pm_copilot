@@ -11,6 +11,8 @@ import type { GenerateContentResponse } from '../models/GenerateContentResponse'
 import type { LLMModel } from '../models/LLMModel';
 import type { LLMProviderConfig } from '../models/LLMProviderConfig';
 import type { PRD } from '../models/PRD';
+import type { QuestionRequest } from '../models/QuestionRequest';
+import type { QuestionResponse } from '../models/QuestionResponse';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -157,6 +159,33 @@ export class DefaultService {
                 400: `Bad request - invalid input parameters`,
                 404: `PRD not found`,
                 500: `Internal server error - AI critique failed`,
+            },
+        });
+    }
+    /**
+     * Ask questions about a PRD
+     * Ask questions about a specific PRD and get AI-powered answers with context
+     * @param id The ID of the PRD to ask questions about
+     * @param requestBody
+     * @returns QuestionResponse Successfully answered the question
+     * @throws ApiError
+     */
+    public static postPrdsQuestion(
+        id: string,
+        requestBody: QuestionRequest,
+    ): CancelablePromise<QuestionResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/prds/{id}/question',
+            path: {
+                'id': id,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                400: `Bad request - invalid input parameters`,
+                404: `PRD not found`,
+                500: `Internal server error - AI question answering failed`,
             },
         });
     }

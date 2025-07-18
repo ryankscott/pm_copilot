@@ -88,7 +88,7 @@ export function PRDList() {
           <Link to={"/prd/$prdId"} key={prd.id} params={{ prdId: prd.id }}>
             <Card
               key={prd.id}
-              className={`py-2 flex-1 my-0.5 hover:shadow-lg transition-colors group ${
+              className={`py-4 flex-1 my-0.5 hover:shadow-lg transition-colors group ${
                 prd.id === currentPrdId
                   ? "bg-background/10 shadow-lg"
                   : "bg-background"

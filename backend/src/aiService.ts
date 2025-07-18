@@ -9,12 +9,16 @@ import {
   getInteractiveSystemPrompt,
   getCritiqueSystemPrompt,
   getCritiqueUserPrompt,
+  getQuestionSystemPrompt,
+  getQuestionUserPrompt,
 } from "./prompts";
 import {
   CritiqueRequest,
   GenerateContentRequest,
   GenerateContentResponse,
   CritiqueResponse,
+  QuestionRequest,
+  QuestionResponse,
   LLMProviderConfig,
   PRDContent,
 } from "./generated";
@@ -375,6 +379,7 @@ export const generateContent = async (
 // Enhanced critique function with similar improvements
 export const critiquePRD = async (
   request: CritiqueRequest,
+  prdContent: string,
   prdId?: string,
   userId?: string,
   sessionId?: string
@@ -395,7 +400,7 @@ export const critiquePRD = async (
       focusAreas: request.focus_areas,
       hasCustomCriteria: !!request.custom_criteria,
       includeSuggestions: request.include_suggestions,
-      contentLength: request.existing_content?.length || 0,
+      contentLength: prdContent?.length || 0,
     },
     userId,
     effectiveSessionId
@@ -412,7 +417,7 @@ export const critiquePRD = async (
       model: request.model,
       depth: request.depth,
       focusAreas: request.focus_areas,
-      contentLength: request.existing_content?.length || 0,
+      contentLength: prdContent?.length || 0,
       hasCustomCriteria: !!request.custom_criteria,
     });
 
@@ -432,7 +437,7 @@ export const critiquePRD = async (
 
   try {
     const systemPrompt = await getCritiqueSystemPrompt(request);
-    const userPrompt = await getCritiqueUserPrompt(request);
+    const userPrompt = await getCritiqueUserPrompt(request, prdContent);
 
     // Start Langfuse generation tracking with enhanced metadata
     if (trace) {
@@ -453,7 +458,7 @@ export const critiquePRD = async (
           maxTokens: 2000,
           systemPromptLength: systemPrompt.length,
           userPromptLength: userPrompt.length,
-          contentLength: request.existing_content?.length || 0,
+          contentLength: prdContent?.length || 0,
           requestTimestamp: new Date().toISOString(),
         },
       });
@@ -643,9 +648,169 @@ export const testProvider = async (
   }
 };
 
+export const answerQuestion = async (
+  request: QuestionRequest,
+  prdContent: string,
+  prdId: string,
+  userId: string,
+  sessionId: string
+): Promise<QuestionResponse & { langfuseData?: LangfuseTraceData }> => {
+  const { model, modelName } = getAIModel(request.provider, request.model);
+
+  let traceData: LangfuseTraceData | undefined;
+
+  try {
+    // Create Langfuse trace if enabled
+    if (isLangfuseEnabled()) {
+      const trace = await createPRDTrace(prdId, userId, sessionId, {
+        question: request.question,
+        context: request.context,
+        provider: request.provider?.type,
+        model: modelName,
+      });
+      if (trace) {
+        traceData = {
+          traceId: trace.id,
+          generationId: "", // Will be set later if needed
+        };
+      }
+    }
+
+    // Track custom event
+    await trackCustomEvent(
+      "prd_question_started",
+      {
+        prdId,
+        question: request.question,
+        provider: request.provider?.type,
+        model: modelName,
+      },
+      userId,
+      sessionId
+    );
+
+    const startTime = Date.now();
+
+    // Get system and user prompts
+    const systemPrompt = await getQuestionSystemPrompt(request);
+    const userPrompt = await getQuestionUserPrompt(request, prdContent);
+
+    // Prepare conversation history
+    const messages: CoreMessage[] = [
+      {
+        role: "system",
+        content: systemPrompt,
+      },
+    ];
+
+    // Add conversation history if provided
+    if (request.conversation_history) {
+      for (const msg of request.conversation_history) {
+        messages.push({
+          role: msg.role as "user" | "assistant",
+          content: msg.content as string,
+        });
+      }
+    }
+
+    // Add the current question
+    messages.push({
+      role: "user",
+      content: userPrompt,
+    });
+
+    // Generate response using AI SDK
+    const result = await generateObject({
+      model,
+      messages,
+      schema: z.object({
+        answer: z.string().describe("The answer to the question about the PRD"),
+        related_sections: z
+          .array(z.string())
+          .optional()
+          .describe(
+            "Sections of the PRD that are most relevant to the question"
+          ),
+        follow_up_questions: z
+          .array(z.string())
+          .optional()
+          .describe("Suggested follow-up questions"),
+      }),
+      temperature: 0.7,
+      maxTokens: 2000,
+    });
+
+    const endTime = Date.now();
+    const generationTime = (endTime - startTime) / 1000;
+
+    // Track performance metric
+    await trackPerformanceMetric(
+      "question_generation_time",
+      generationTime,
+      "seconds",
+      {
+        provider: request.provider?.type,
+        model: modelName,
+        prdId,
+        question_length: request.question.length,
+        userId,
+        sessionId,
+      }
+    );
+
+    // Track custom event for completion
+    await trackCustomEvent(
+      "prd_question_completed",
+      {
+        prdId,
+        question: request.question,
+        provider: request.provider?.type,
+        model: modelName,
+        generation_time: generationTime,
+        input_tokens: result.usage?.promptTokens,
+        output_tokens: result.usage?.completionTokens,
+      },
+      userId,
+      sessionId
+    );
+
+    const response: QuestionResponse & { langfuseData?: LangfuseTraceData } = {
+      answer: result.object.answer,
+      related_sections: result.object.related_sections || [],
+      follow_up_questions: result.object.follow_up_questions || [],
+      input_tokens: result.usage?.promptTokens,
+      output_tokens: result.usage?.completionTokens,
+      tokens_used: result.usage?.totalTokens,
+      generation_time: generationTime,
+      langfuseData: traceData,
+    };
+
+    return response;
+  } catch (error) {
+    console.error("Question answering failed:", error);
+
+    // Track error event
+    await trackCustomEvent(
+      "prd_question_failed",
+      {
+        prdId,
+        question: request.question,
+        provider: request.provider?.type,
+        model: modelName,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      userId,
+      sessionId
+    );
+
+    throw error;
+  }
+};
+
 // Export service object with all functions
 export const aiService = {
   generateContent,
   critiquePRD,
+  answerQuestion,
   testProvider,
 };
