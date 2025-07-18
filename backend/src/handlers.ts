@@ -453,10 +453,10 @@ export const answerPrdQuestion =
 
     try {
       // Get the PRD content first
-      const prd = await new Promise<any>((resolve, reject) => {
+      const prd = await new Promise<PRD | undefined>((resolve, reject) => {
         db.get("SELECT * FROM prds WHERE id = ?", [id], (err, row) => {
           if (err) reject(err);
-          else resolve(row);
+          else resolve(row as PRD | undefined);
         });
       });
 
