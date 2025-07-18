@@ -19,9 +19,7 @@ export function usePrds() {
     queryKey: prdKeys.list(),
     queryFn: prdApi.getAll,
     select: (data) =>
-      toCamelCase(
-        data as unknown as Record<string, unknown>[]
-      ) as unknown as PRD[],
+      toCamelCase(data),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
