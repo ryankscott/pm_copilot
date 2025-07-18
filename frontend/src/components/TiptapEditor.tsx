@@ -522,7 +522,7 @@ export function TiptapEditor({
       <MenuBar editor={editor} />
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none p-4 focus:outline-none min-h-[400px]"
+        className="prose prose-sm max-w-none p-6 focus:outline-none min-h-[400px]"
         placeholder={placeholder}
       />
       <style>{`

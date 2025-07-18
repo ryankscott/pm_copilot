@@ -13,6 +13,7 @@ import type { LLMProviderConfig } from '../models/LLMProviderConfig';
 import type { PRD } from '../models/PRD';
 import type { QuestionRequest } from '../models/QuestionRequest';
 import type { QuestionResponse } from '../models/QuestionResponse';
+import type { Template } from '../models/Template';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
@@ -276,6 +277,43 @@ export class DefaultService {
             errors: {
                 400: `Bad request - invalid feedback data`,
                 500: `Failed to submit feedback`,
+            },
+        });
+    }
+    /**
+     * Get all available templates
+     * Retrieve a list of all available PRD templates
+     * @returns Template A list of templates
+     * @throws ApiError
+     */
+    public static getTemplates(): CancelablePromise<Array<Template>> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/templates',
+            errors: {
+                500: `Internal server error`,
+            },
+        });
+    }
+    /**
+     * Get a template by ID
+     * Retrieve a specific template with its sections
+     * @param id The template ID
+     * @returns Template The template
+     * @throws ApiError
+     */
+    public static getTemplates1(
+        id: string,
+    ): CancelablePromise<Template> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/templates/{id}',
+            path: {
+                'id': id,
+            },
+            errors: {
+                404: `Template not found`,
+                500: `Internal server error`,
             },
         });
     }

@@ -2,18 +2,29 @@ export interface PRD {
   id: string;
   title: string;
   content: string;
+  templateId?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TemplateSection {
+  id: string;
+  name: string;
+  description: string;
+  placeholder?: string;
+  required?: boolean;
+  order: number;
 }
 
 export interface Template {
   id: string;
   title: string;
   description: string;
-  content: string;
   category: string;
+  sections: TemplateSection[];
   createdAt: string;
   updatedAt: string;
+  isCustom?: boolean; // True for user-created templates
 }
 
 export interface PRDContent {
@@ -23,6 +34,26 @@ export interface PRDContent {
     title: string;
     content: string;
   }[];
+}
+
+export interface Template {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  sections: TemplateSection[];
+  createdAt: string;
+  updatedAt: string;
+  isCustom?: boolean;
+}
+
+export interface TemplateSection {
+  id: string;
+  name: string;
+  description: string;
+  placeholder?: string;
+  required?: boolean;
+  order: number;
 }
 
 export interface ConversationMessage {

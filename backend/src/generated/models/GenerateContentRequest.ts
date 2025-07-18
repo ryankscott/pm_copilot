@@ -33,6 +33,10 @@ export type GenerateContentRequest = {
      * Specific model to use for generation
      */
     model?: string;
+    /**
+     * Template ID to use for structured generation
+     */
+    template_id?: string;
 };
 export namespace GenerateContentRequest {
     /**

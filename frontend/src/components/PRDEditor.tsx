@@ -155,7 +155,10 @@ export function PRDEditor({ prd, onUpdatePrd }: PRDEditorProps) {
             ) : (
               <div className="p-4 prose prose-gray dark:prose-invert max-w-none">
                 {content ? (
-                  <div dangerouslySetInnerHTML={{ __html: content }} />
+                  <div
+                    className="p-4"
+                    dangerouslySetInnerHTML={{ __html: content }}
+                  />
                 ) : (
                   <div className="text-muted-foreground italic">
                     No content to preview. Switch to Edit mode to start writing.

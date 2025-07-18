@@ -21,6 +21,7 @@ import {
   QuestionResponse,
   LLMProviderConfig,
   PRDContent,
+  Template,
 } from "./generated";
 import {
   createPRDTrace,
@@ -119,7 +120,8 @@ export const generateContent = async (
   request: GenerateContentRequest,
   prdId?: string,
   userId?: string,
-  sessionId?: string
+  sessionId?: string,
+  template?: Template | null
 ): Promise<GenerateContentResponse & { langfuseData?: LangfuseTraceData }> => {
   const startTime = Date.now();
 
@@ -173,7 +175,31 @@ export const generateContent = async (
 
   try {
     // Build the system prompt using the new async function that fetches from Langfuse
-    const systemPrompt = await getInteractiveSystemPrompt(request);
+    let systemPrompt = await getInteractiveSystemPrompt(request);
+
+    // If a template is provided, add template structure to the system prompt
+    if (template) {
+      const templateInstructions = `
+
+TEMPLATE STRUCTURE:
+You are generating content for a PRD using the "${template.title}" template.
+Template Description: ${template.description}
+
+The response should follow this structure with the following sections:
+${template.sections
+  .map(
+    (section) => `
+- ${section.name}: ${section.description}${
+      section.required ? " (REQUIRED)" : " (OPTIONAL)"
+    }
+  ${section.placeholder ? `Placeholder: ${section.placeholder}` : ""}`
+  )
+  .join("")}
+
+Please ensure the generated content follows this template structure and includes all required sections.`;
+
+      systemPrompt += templateInstructions;
+    }
 
     // Check if we have a valid prompt
     if (!request.prompt || request.prompt.trim() === "") {

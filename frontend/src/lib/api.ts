@@ -9,6 +9,7 @@ import type {
   QuestionRequest,
   QuestionResponse,
   LLMModel,
+  Template,
 } from "@/types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -159,6 +160,15 @@ export const prdApi = {
         body: JSON.stringify(request),
       }
     ),
+};
+
+export const templateApi = {
+  // Get all templates
+  getAll: (): Promise<Template[]> => fetchApi<Template[]>("/templates"),
+
+  // Get template by ID
+  getById: (id: string): Promise<Template> =>
+    fetchApi<Template>(`/templates/${id}`),
 };
 
 // Feedback API

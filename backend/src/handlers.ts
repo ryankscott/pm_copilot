@@ -6,6 +6,8 @@ import {
   CritiqueRequest,
   QuestionRequest,
   PRD,
+  Template,
+  TemplateSection,
 } from "./generated";
 import { aiService } from "./aiService";
 import {
@@ -45,19 +47,26 @@ export const getPrdById =
 
 export const createPrd =
   (db: sqlite3.Database) => (req: Request, res: Response) => {
-    const { title, content } = req.body;
+    const { title, content, templateId } = req.body;
     const id = uuidv4();
     const now = new Date().toISOString();
 
     db.run(
-      "INSERT INTO prds (id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-      [id, title, content, now, now],
+      "INSERT INTO prds (id, title, content, template_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, title, content, templateId || null, now, now],
       function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
           return;
         }
-        res.json({ id, title, content, created_at: now, updated_at: now });
+        res.json({
+          id,
+          title,
+          content,
+          templateId,
+          created_at: now,
+          updated_at: now,
+        });
       }
     );
   };
@@ -65,12 +74,12 @@ export const createPrd =
 export const updatePrd =
   (db: sqlite3.Database) => (req: Request, res: Response) => {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, templateId } = req.body;
     const now = new Date().toISOString();
 
     db.run(
-      "UPDATE prds SET title = ?, content = ?, updated_at = ? WHERE id = ?",
-      [title, content, now, id],
+      "UPDATE prds SET title = ?, content = ?, template_id = ?, updated_at = ? WHERE id = ?",
+      [title, content, templateId || null, now, id],
       function (err) {
         if (err) {
           res.status(500).json({ error: err.message });
@@ -80,7 +89,7 @@ export const updatePrd =
           res.status(404).json({ error: "PRD not found" });
           return;
         }
-        res.json({ id, title, content, updated_at: now });
+        res.json({ id, title, content, templateId, updated_at: now });
       }
     );
   };
@@ -157,11 +166,69 @@ export const generatePrdContent =
 
     try {
       const startTime = Date.now();
+
+      // If a template_id is provided, get the template structure
+      let templateStructure = null;
+      if (generateRequest.template_id) {
+        templateStructure = await new Promise<Template | null>(
+          (resolve, reject) => {
+            db.get(
+              "SELECT * FROM templates WHERE id = ?",
+              [generateRequest.template_id],
+              (err, templateRow: any) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+
+                if (!templateRow) {
+                  resolve(null);
+                  return;
+                }
+
+                // Get sections for this template
+                db.all(
+                  "SELECT * FROM template_sections WHERE template_id = ? ORDER BY order_index",
+                  [generateRequest.template_id],
+                  (sectionsErr, sectionRows: any[]) => {
+                    if (sectionsErr) {
+                      reject(sectionsErr);
+                      return;
+                    }
+
+                    const sections = sectionRows.map((row) => ({
+                      id: row.id,
+                      name: row.name,
+                      description: row.description,
+                      placeholder: row.placeholder,
+                      required: !!row.required,
+                      order: row.order_index,
+                    }));
+
+                    resolve({
+                      id: templateRow.id,
+                      title: templateRow.title,
+                      description: templateRow.description,
+                      category: templateRow.category,
+                      sections,
+                      isCustom: !!templateRow.is_custom,
+                      createdAt: templateRow.created_at,
+                      updatedAt: templateRow.updated_at,
+                    });
+                  }
+                );
+              }
+            );
+          }
+        );
+      }
+
       const aiResult = await aiService.generateContent(
         generateRequest,
         id,
         userId,
-        sessionId
+        sessionId,
+        templateStructure
       );
 
       if (!aiResult || !aiResult.generated_content) {
@@ -473,7 +540,7 @@ export const answerPrdQuestion =
       // Use real AI service for question answering
       const questionResult = await aiService.answerQuestion(
         questionRequest,
-        prd.content,
+        prd.content || "",
         id,
         userId,
         sessionId
@@ -666,3 +733,158 @@ export const submitFeedbackEnhanced = async (req: Request, res: Response) => {
     });
   }
 };
+
+// Template handlers
+export const getTemplates =
+  (db: sqlite3.Database) => (req: Request, res: Response) => {
+    const query = `
+      SELECT 
+        t.id,
+        t.title,
+        t.description,
+        t.category,
+        t.is_custom as isCustom,
+        t.created_at as createdAt,
+        t.updated_at as updatedAt
+      FROM templates t
+      ORDER BY t.category, t.title
+    `;
+
+    db.all(query, [], (err, templateRows: any[]) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      if (templateRows.length === 0) {
+        res.json([]);
+        return;
+      }
+
+      // Get all template sections in one query
+      const templateIds = templateRows.map((row) => row.id);
+      const sectionsQuery = `
+        SELECT 
+          ts.id,
+          ts.template_id as templateId,
+          ts.name,
+          ts.description,
+          ts.placeholder,
+          ts.required,
+          ts.order_index as "order"
+        FROM template_sections ts
+        WHERE ts.template_id IN (${templateIds.map(() => "?").join(",")})
+        ORDER BY ts.template_id, ts.order_index
+      `;
+
+      db.all(sectionsQuery, templateIds, (err, sectionRows: any[]) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        // Group sections by template ID
+        const sectionsByTemplate = sectionRows.reduce((acc, section) => {
+          if (!acc[section.templateId]) {
+            acc[section.templateId] = [];
+          }
+          acc[section.templateId].push({
+            id: section.id,
+            name: section.name,
+            description: section.description,
+            placeholder: section.placeholder,
+            required: !!section.required,
+            order: section.order,
+          });
+          return acc;
+        }, {} as Record<string, TemplateSection[]>);
+
+        // Combine templates with their sections
+        const templates: Template[] = templateRows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          category: row.category,
+          sections: sectionsByTemplate[row.id] || [],
+          isCustom: !!row.isCustom,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+        }));
+
+        res.json(templates);
+      });
+    });
+  };
+
+export const getTemplateById =
+  (db: sqlite3.Database) => (req: Request, res: Response) => {
+    const { id } = req.params;
+
+    const templateQuery = `
+      SELECT 
+        t.id,
+        t.title,
+        t.description,
+        t.category,
+        t.is_custom as isCustom,
+        t.created_at as createdAt,
+        t.updated_at as updatedAt
+      FROM templates t
+      WHERE t.id = ?
+    `;
+
+    db.get(templateQuery, [id], (err, templateRow: any) => {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+
+      if (!templateRow) {
+        res.status(404).json({ error: "Template not found" });
+        return;
+      }
+
+      // Get sections for this template
+      const sectionsQuery = `
+        SELECT 
+          ts.id,
+          ts.name,
+          ts.description,
+          ts.placeholder,
+          ts.required,
+          ts.order_index as "order"
+        FROM template_sections ts
+        WHERE ts.template_id = ?
+        ORDER BY ts.order_index
+      `;
+
+      db.all(sectionsQuery, [id], (err, sectionRows: any[]) => {
+        if (err) {
+          res.status(500).json({ error: err.message });
+          return;
+        }
+
+        const sections: TemplateSection[] = sectionRows.map((row) => ({
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          placeholder: row.placeholder,
+          required: !!row.required,
+          order: row.order,
+        }));
+
+        const template: Template = {
+          id: templateRow.id,
+          title: templateRow.title,
+          description: templateRow.description,
+          category: templateRow.category,
+          sections,
+          isCustom: !!templateRow.isCustom,
+          createdAt: templateRow.createdAt,
+          updatedAt: templateRow.updatedAt,
+        };
+
+        res.json(template);
+      });
+    });
+  };

@@ -26,9 +26,9 @@ import { usePrds } from "@/hooks/use-prd-queries";
 export function AppSidebar() {
   const { success } = useToast();
   const { state } = useSidebar();
-  const [selectedSection, setSelectedSection] = useState<
-    "documents" | "templates" | "chat"
-  >("documents");
+  const [selectedSection, setSelectedSection] = useState<"documents" | "chat">(
+    "documents"
+  );
   const { data: prds } = usePrds();
 
   const handleGitHubClick = () => {
@@ -36,7 +36,6 @@ export function AppSidebar() {
   };
 
   const documentsCount = prds?.length || 0;
-  const templatesCount = 0; // Templates don't exist yet
 
   return (
     <>
@@ -75,27 +74,6 @@ export function AppSidebar() {
                   </span>
                 </SidebarMenuButton>
                 <SidebarMenuButton
-                  onClick={() => setSelectedSection("templates")}
-                  className={`flex items-center gap-2 w-full justify-start ${
-                    selectedSection === "templates"
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  <Layout className="w-4 h-4" />
-                  <span>Templates</span>
-                  <span
-                    className={`ml-auto text-xs 
-                    ${
-                      selectedSection === "templates"
-                        ? "text-accent-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {templatesCount}
-                  </span>
-                </SidebarMenuButton>
-                <SidebarMenuButton
                   asChild
                   className={`flex items-center gap-2 w-full justify-start ${
                     selectedSection === "chat"
@@ -119,14 +97,6 @@ export function AppSidebar() {
                 <div>
                   <h3 className="font-semibold text-sm px-4 mb-2">PRDs</h3>
                   <PRDList />
-                </div>
-              )}
-              {selectedSection === "templates" && (
-                <div className="px-4">
-                  <h3 className="font-semibold text-sm mb-2">Templates</h3>
-                  <div className="text-sm text-muted-foreground">
-                    No templates available yet
-                  </div>
                 </div>
               )}
             </SidebarGroupContent>

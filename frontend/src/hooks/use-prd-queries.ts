@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { prdApi } from "@/lib/api";
 import type { PRD } from "@/types";
-import { toCamelCase } from "@/lib/utils";
+import camelcaseKeys from "camelcase-keys";
 
 // Query keys
 export const prdKeys = {
@@ -18,8 +18,8 @@ export function usePrds() {
   return useQuery({
     queryKey: prdKeys.list(),
     queryFn: prdApi.getAll,
-    select: (data) =>
-      toCamelCase(data),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    select: (data) => camelcaseKeys(data as Record<string, any>),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -28,7 +28,8 @@ export function usePrd(id: string) {
   return useQuery({
     queryKey: prdKeys.detail(id),
     queryFn: () => prdApi.getById(id),
-    select: (data) => toCamelCase<Record<string, unknown>, PRD>(data),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    select: (data) => camelcaseKeys(data as Record<string, any>),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

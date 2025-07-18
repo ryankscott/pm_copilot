@@ -332,6 +332,55 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+  /templates:
+    get:
+      summary: Get all available templates
+      description: Retrieve a list of all available PRD templates
+      responses:
+        "200":
+          description: A list of templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Template"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /templates/{id}:
+    get:
+      summary: Get a template by ID
+      description: Retrieve a specific template with its sections
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The template ID
+      responses:
+        "200":
+          description: The template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Template"
+        "404":
+          description: Template not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
 components:
   schemas:
@@ -344,6 +393,9 @@ components:
           type: string
         content:
           type: string
+        templateId:
+          type: string
+          description: ID of the template used for this PRD
         createdAt:
           type: string
           format: date-time
@@ -385,6 +437,10 @@ components:
           type: string
           description: Specific model to use for generation
           example: "gpt-4o"
+        template_id:
+          type: string
+          description: Template ID to use for structured generation
+          example: "feature-prd-template"
     CritiqueRequest:
       type: object
       properties:
@@ -712,3 +768,66 @@ components:
         metadata:
           type: object
           description: Additional metadata for the generation
+    Template:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - category
+        - sections
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the template
+        title:
+          type: string
+          description: Display name of the template
+        description:
+          type: string
+          description: Description of the template
+        category:
+          type: string
+          description: Category of the template
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/TemplateSection"
+          description: Sections included in this template
+        createdAt:
+          type: string
+          format: date-time
+          description: When the template was created
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the template was last updated
+        isCustom:
+          type: boolean
+          description: Whether this is a user-created template
+    TemplateSection:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - order
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the section
+        name:
+          type: string
+          description: Display name of the section
+        description:
+          type: string
+          description: Description of what should be included in this section
+        placeholder:
+          type: string
+          description: Placeholder text for the section
+        required:
+          type: boolean
+          description: Whether this section is required
+        order:
+          type: integer
+          description: Display order of the section

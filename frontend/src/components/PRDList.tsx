@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMatchRoute, useRouter } from "@tanstack/react-router";
 import { Card, CardHeader } from "./ui/card";
 import { Plus, Loader2, Trash2 } from "lucide-react";
@@ -5,9 +6,12 @@ import { Link } from "@tanstack/react-router";
 import { Button } from "./ui/button";
 import { usePrds, useCreatePrd, useDeletePrd } from "@/hooks/use-prd-queries";
 import { useToast } from "@/hooks/use-toast";
+import { TemplateSelectionDialog } from "./TemplateSelectionDialog";
+import type { PRD, Template } from "@/types";
 
 export function PRDList() {
   const { data: prds, isLoading, refetch } = usePrds();
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const { success, error: errorToast } = useToast();
   const createPrd = useCreatePrd();
@@ -30,12 +34,36 @@ export function PRDList() {
     }
   };
 
-  const handleCreatePrd = async () => {
+  const handleCreatePrd = () => {
+    setTemplateDialogOpen(true);
+  };
+
+  const handleTemplateSelect = async (template: Template | null) => {
     try {
+      let content =
+        "<h1>New PRD</h1><p>Start writing your requirements here...</p>";
+      let title = "New PRD";
+
+      if (template) {
+        title = `${template.title} - New PRD`;
+        // Create content based on template sections
+        const sectionContent = template.sections
+          .sort((a, b) => a.order - b.order)
+          .map((section) => {
+            const placeholder =
+              section.placeholder ||
+              `Add ${section.name.toLowerCase()} content here...`;
+            return `<h2>${section.name}</h2><p><em>${section.description}</em></p><p>${placeholder}</p>`;
+          })
+          .join("\n\n");
+
+        content = `<h1>${template.title}</h1>\n<p><em>${template.description}</em></p>\n\n${sectionContent}`;
+      }
+
       const newPrd = await createPrd.mutateAsync({
-        title: "New PRD",
-        content:
-          "<h1>New PRD</h1><p>Start writing your requirements here...</p>",
+        title,
+        content,
+        templateId: template?.id,
       });
 
       // Navigate to the new PRD
@@ -84,7 +112,7 @@ export function PRDList() {
         New PRD
       </Button>
       {prds &&
-        prds.map((prd) => (
+        prds.map((prd: PRD) => (
           <Link to={"/prd/$prdId"} key={prd.id} params={{ prdId: prd.id }}>
             <Card
               key={prd.id}
@@ -94,20 +122,24 @@ export function PRDList() {
                   : "bg-background"
               }`}
             >
-              <CardHeader className="px-4 align-middle">
-                <div className="flex flex-row items-center justify-between align-middle">
-                  <h4 className="text-sm font-medium leading-tight truncate pr-2">
-                    {prd.title}
-                  </h4>
-                  <Trash2
-                    className="w-3 h-3 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeletePrd(prd.id)}
-                  />
-                </div>
+              <CardHeader className="flex flex-row px-4 justify-between">
+                <h4 className="text-sm font-medium leading-tight truncate pr-2">
+                  {prd.title}
+                </h4>
+                <Trash2
+                  className="min-w-4 w-3 h-3 text-muted-foreground hover:text-destructive"
+                  onClick={() => handleDeletePrd(prd.id)}
+                />
               </CardHeader>
             </Card>
           </Link>
         ))}
+
+      <TemplateSelectionDialog
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onTemplateSelect={handleTemplateSelect}
+      />
     </div>
   );
 }

@@ -22,5 +22,7 @@ export type { PRD } from './models/PRD';
 export type { PRDContent } from './models/PRDContent';
 export type { QuestionRequest } from './models/QuestionRequest';
 export type { QuestionResponse } from './models/QuestionResponse';
+export type { Template } from './models/Template';
+export type { TemplateSection } from './models/TemplateSection';
 
 export { DefaultService } from './services/DefaultService';

@@ -18,6 +18,8 @@ import {
   submitFeedbackHandler,
   getLangfuseHealth,
   submitFeedbackEnhanced,
+  getTemplates,
+  getTemplateById,
 } from "./handlers";
 import { flushLangfuse } from "./langfuse";
 
@@ -65,6 +67,10 @@ initDB("prds.db")
     // Interactive session endpoints
     app.get("/prds/:prdId/session", getSession(db));
     app.post("/prds/:prdId/session", saveSession(db));
+
+    // Template endpoints
+    app.get("/templates", getTemplates(db));
+    app.get("/templates/:id", getTemplateById(db));
 
     // Provider testing endpoints
     app.post("/test-provider", testProvider);
