@@ -28,8 +28,7 @@ export function usePrd(id: string) {
   return useQuery({
     queryKey: prdKeys.detail(id),
     queryFn: () => prdApi.getById(id),
-    select: (data) =>
-      toCamelCase(data as unknown as Record<string, unknown>) as unknown as PRD,
+    select: (data) => toCamelCase<Record<string, unknown>, PRD>(data),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
