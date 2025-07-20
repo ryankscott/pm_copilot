@@ -4,6 +4,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
 import { generateObject, CoreMessage } from "ai";
 import { z } from "zod";
+import { buildSchemaFromTemplate } from "./templateSchema";
 import "dotenv/config";
 import {
   getInteractiveSystemPrompt,
@@ -267,16 +268,19 @@ Please ensure the generated content follows this template structure and includes
       temperature: 0.7,
       prompt: messages.length === 0 ? request.prompt : undefined,
       messages: messages.length > 0 ? messages : undefined,
-      schema: z.object({
-        title: z.string(),
-        summary: z.string(),
-        sections: z.array(
-          z.object({
+      // Use a template-driven schema when a template is supplied, otherwise fall back to the generic one
+      schema: template
+        ? buildSchemaFromTemplate(template)
+        : z.object({
             title: z.string(),
-            content: z.string(),
-          })
-        ),
-      }),
+            summary: z.string(),
+            sections: z.array(
+              z.object({
+                title: z.string(),
+                content: z.string(),
+              })
+            ),
+          }),
     });
 
     const endTime = Date.now();

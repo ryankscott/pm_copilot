@@ -45,7 +45,22 @@ async function fetchApi<T>(
     );
   }
 
-  return response.json();
+  // Handle responses with no content (like 204 No Content)
+  if (
+    response.status === 204 ||
+    response.headers.get("content-length") === "0"
+  ) {
+    return null as T;
+  }
+
+  // Check if response has JSON content
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  // For non-JSON responses, return null
+  return null as T;
 }
 
 // Session management API

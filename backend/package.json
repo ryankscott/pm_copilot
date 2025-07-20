@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "generate": "npx openapi-typescript-codegen --input openapi.yaml --output src/generated --client fetch"
   },
   "keywords": [],

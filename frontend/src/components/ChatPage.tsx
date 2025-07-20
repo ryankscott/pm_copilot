@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { usePrds } from "@/hooks/use-prd-queries";
+import { useTemplates } from "@/hooks/use-template-queries";
 import { useLLMStore } from "@/store/llm-store";
 import { prdApi } from "@/lib/api";
 import { MetadataFooter } from "./MetadataFooter";
@@ -41,6 +42,7 @@ import type {
   GenerateContentRequest,
   CritiqueRequest,
   QuestionRequest,
+  Template,
 } from "@/types";
 
 type ChatMode = "create" | "critique" | "question";
@@ -52,6 +54,7 @@ interface PRDContext {
 
 export function ChatPage() {
   const { data: prds } = usePrds();
+  const { data: templates } = useTemplates();
   const { getCurrentProvider, settings } = useLLMStore();
 
   // Chat state
@@ -60,6 +63,7 @@ export function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [chatMode, setChatMode] = useState<ChatMode>("create");
   const [prdContexts, setPrdContexts] = useState<PRDContext[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
 
   // Mode descriptions
   const modeDescriptions = {
@@ -71,17 +75,28 @@ export function ChatPage() {
       "I'll answer questions about your PRD and help you understand or improve specific aspects.",
   };
 
+  // Handle mode change
+  const handleModeChange = (value: ChatMode) => {
+    setChatMode(value);
+    // Clear template selection when switching away from create mode
+    if (value !== "create") {
+      setSelectedTemplateId("");
+    }
+  };
+
   // Add PRD to context
   const addPrdContext = (prdId: string) => {
-    const prd = prds?.find((p) => p.id === prdId);
-    if (prd && !prdContexts.find((ctx) => ctx.prd.id === prdId)) {
+    const prd = prds?.find((p: PRD) => p.id === prdId);
+    if (prd && !prdContexts.find((ctx: PRDContext) => ctx.prd.id === prdId)) {
       setPrdContexts((prev) => [...prev, { prd, addedAt: new Date() }]);
     }
   };
 
   // Remove PRD from context
   const removePrdContext = (prdId: string) => {
-    setPrdContexts((prev) => prev.filter((ctx) => ctx.prd.id !== prdId));
+    setPrdContexts((prev) =>
+      prev.filter((ctx: PRDContext) => ctx.prd.id !== prdId)
+    );
   };
 
   // Create user message
@@ -149,6 +164,14 @@ export function ChatPage() {
 
       if (chatMode === "create") {
         // Use the existing interactive PRD creation API
+        const templateId = selectedTemplateId || undefined;
+
+        if (!templateId) {
+          throw new Error(
+            "No template selected. Please select a template before generating content."
+          );
+        }
+
         const request: GenerateContentRequest = {
           prompt: userMessage.content as string,
           tone: "professional",
@@ -158,6 +181,7 @@ export function ChatPage() {
           conversation_history: messages,
           provider,
           model: settings.selectedModel,
+          template_id: templateId,
         };
 
         // For create mode, we need a PRD context or create a temporary one
@@ -200,7 +224,7 @@ export function ChatPage() {
           question: userMessage.content as string,
           context:
             prdContexts.length > 1
-              ? `Multiple PRDs: ${prdContexts.map((ctx) => ctx.prd.title).join(", ")}`
+              ? `Multiple PRDs: ${prdContexts.map((ctx: PRDContext) => ctx.prd.title).join(", ")}`
               : undefined,
           conversation_history: messages,
           provider,
@@ -381,38 +405,68 @@ export function ChatPage() {
         {/* Mode Selection */}
         <div className="px-4 pb-4">
           <div className="flex flex-col items-start gap-2">
-            <Select
-              value={chatMode}
-              onValueChange={(value: ChatMode) => setChatMode(value)}
-            >
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="create">
-                  <div className="flex items-center gap-2">
-                    <Wand2 className="w-4 h-4" />
-                    Create PRD
-                  </div>
-                </SelectItem>
-                <SelectItem value="critique">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    Critique PRD
-                  </div>
-                </SelectItem>
-                <SelectItem value="question">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4" />
-                    Ask Questions
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-4">
+              <Select value={chatMode} onValueChange={handleModeChange}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="create">
+                    <div className="flex items-center gap-2">
+                      <Wand2 className="w-4 h-4" />
+                      Create PRD
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="critique">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="w-4 h-4" />
+                      Critique PRD
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="question">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Ask Questions
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
 
-            <p className="text-sm text-muted-foreground">
-              {modeDescriptions[chatMode]}
-            </p>
+              {/* Template Selection - Only show in create mode */}
+              {chatMode === "create" && (
+                <Select
+                  value={selectedTemplateId}
+                  onValueChange={setSelectedTemplateId}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Select a template..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {templates?.map((template: Template) => (
+                      <SelectItem key={template.id} value={template.id}>
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{template.title}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {template.category}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-sm text-muted-foreground">
+                {modeDescriptions[chatMode]}
+              </p>
+              {chatMode === "create" && !selectedTemplateId && (
+                <p className="text-red-500 text-sm">
+                  Select a template to get started.
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
@@ -422,7 +476,7 @@ export function ChatPage() {
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium">Context:</span>
               <div className="flex flex-wrap gap-2">
-                {prdContexts.map((ctx) => (
+                {prdContexts.map((ctx: PRDContext) => (
                   <Badge
                     key={ctx.prd.id}
                     className="flex rounded-none items-center gap-1 p-0 m-0 pl-2"
@@ -460,6 +514,11 @@ export function ChatPage() {
                 <p className="text-muted-foreground">
                   {modeDescriptions[chatMode]}
                 </p>
+                {chatMode === "create" && !selectedTemplateId && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Select a template above to get started.
+                  </p>
+                )}
                 {(chatMode === "critique" || chatMode === "question") && (
                   <p className="text-sm text-muted-foreground mt-2">
                     Add a PRD as context to get started.
@@ -507,7 +566,7 @@ export function ChatPage() {
             chatMode !== "create" ? "justify-between" : "justify-end"
           } py-2 pt-4 relative`}
         >
-          {chatMode != "create" && (
+          {chatMode !== "create" && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="mb-2">
@@ -516,11 +575,13 @@ export function ChatPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {prds?.map((prd) => (
+                {prds?.map((prd: PRD) => (
                   <DropdownMenuItem
                     key={prd.id}
                     onClick={() => addPrdContext(prd.id)}
-                    disabled={prdContexts.some((ctx) => ctx.prd.id === prd.id)}
+                    disabled={prdContexts.some(
+                      (ctx: PRDContext) => ctx.prd.id === prd.id
+                    )}
                     className="flex items-center gap-2"
                   >
                     <FileText className="w-4 h-4" />
@@ -533,7 +594,11 @@ export function ChatPage() {
 
           <Button
             onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading}
+            disabled={
+              !input.trim() ||
+              isLoading ||
+              (chatMode === "create" && !selectedTemplateId)
+            }
             size="sm"
             className="mb-2"
           >

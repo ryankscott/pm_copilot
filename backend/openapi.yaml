@@ -406,6 +406,7 @@ components:
       type: object
       required:
         - prompt
+        - template_id
       properties:
         prompt:
           type: string

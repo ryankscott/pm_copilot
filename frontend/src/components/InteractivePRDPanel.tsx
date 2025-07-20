@@ -212,6 +212,12 @@ export function InteractivePRDPanel({
     setIsInteractiveLoading(true);
 
     try {
+      if (!prd.templateId) {
+        throw new Error(
+          "This PRD does not have an associated template. Please assign a template before using interactive generation."
+        );
+      }
+
       const request: GenerateContentRequest = {
         prompt: userMessage.content as string,
         tone: interactiveSettings.tone,
@@ -220,6 +226,7 @@ export function InteractivePRDPanel({
         conversation_history: isStart ? [] : interactiveMessages,
         provider: getCurrentProvider(),
         model: settings.selectedModel,
+        template_id: prd.templateId,
       };
 
       const result = await prdApi.generateContent(prd.id, request);

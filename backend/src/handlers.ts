@@ -164,6 +164,15 @@ export const generatePrdContent =
       return;
     }
 
+    // Require template_id when generating a new PRD
+    if (!generateRequest.template_id) {
+      res.status(400).json({
+        message: "Missing required field: template_id",
+        code: "VALIDATION_ERROR",
+      });
+      return;
+    }
+
     try {
       const startTime = Date.now();
 
@@ -172,6 +181,7 @@ export const generatePrdContent =
       if (generateRequest.template_id) {
         templateStructure = await new Promise<Template | null>(
           (resolve, reject) => {
+            // TODO: Fix this so it's one query
             db.get(
               "SELECT * FROM templates WHERE id = ?",
               [generateRequest.template_id],

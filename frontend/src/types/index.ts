@@ -78,6 +78,7 @@ export interface GenerateContentRequest {
   conversation_history?: ConversationMessage[];
   provider?: LLMProviderConfig;
   model?: string;
+  template_id: string;
 }
 
 export interface GenerateContentResponse {

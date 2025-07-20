@@ -10,7 +10,7 @@ import { TemplateSelectionDialog } from "./TemplateSelectionDialog";
 import type { PRD, Template } from "@/types";
 
 export function PRDList() {
-  const { data: prds, isLoading, refetch } = usePrds();
+  const { data: prds, isLoading } = usePrds();
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const { success, error: errorToast } = useToast();
@@ -25,8 +25,8 @@ export function PRDList() {
   const handleDeletePrd = async (prdId: string) => {
     try {
       await deletePrd.mutateAsync(prdId);
-      refetch();
-      router.navigate({ to: "/" });
+      await router.navigate({ to: "/" });
+      // refetch();
       success("PRD Deleted", "Successfully deleted PRD");
     } catch (error) {
       console.error("Failed to delete PRD:", error);
@@ -128,7 +128,11 @@ export function PRDList() {
                 </h4>
                 <Trash2
                   className="min-w-4 w-3 h-3 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDeletePrd(prd.id)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeletePrd(prd.id);
+                  }}
                 />
               </CardHeader>
             </Card>
