@@ -2,9 +2,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createOllama } from "ollama-ai-provider";
-import { generateObject, CoreMessage } from "ai";
+import { generateObject, CoreMessage, generateText } from "ai";
 import { z } from "zod";
-import { buildSchemaFromTemplate } from "./templateSchema";
 import "dotenv/config";
 import {
   getInteractiveSystemPrompt,
@@ -178,30 +177,6 @@ export const generateContent = async (
     // Build the system prompt using the new async function that fetches from Langfuse
     let systemPrompt = await getInteractiveSystemPrompt(request);
 
-    // If a template is provided, add template structure to the system prompt
-    if (template) {
-      const templateInstructions = `
-
-TEMPLATE STRUCTURE:
-You are generating content for a PRD using the "${template.title}" template.
-Template Description: ${template.description}
-
-The response should follow this structure with the following sections:
-${template.sections
-  .map(
-    (section) => `
-- ${section.name}: ${section.description}${
-      section.required ? " (REQUIRED)" : " (OPTIONAL)"
-    }
-  ${section.placeholder ? `Placeholder: ${section.placeholder}` : ""}`
-  )
-  .join("")}
-
-Please ensure the generated content follows this template structure and includes all required sections.`;
-
-      systemPrompt += templateInstructions;
-    }
-
     // Check if we have a valid prompt
     if (!request.prompt || request.prompt.trim() === "") {
       throw new Error("No prompt provided. The current user input is missing.");
@@ -261,19 +236,45 @@ Please ensure the generated content follows this template structure and includes
       }
     }
 
-    const result = await generateObject({
+    // Build the tool description based on template structure
+    let toolDescription =
+      "Generate the final PRD content following the template structure. Call this tool when you have completed the PRD and are ready to output the final content.";
+
+    if (template && template.sections && template.sections.length > 0) {
+      const requiredSections = template.sections
+        .filter((section) => section.required)
+        .map((section) => `"${section.name}"`)
+        .join(", ");
+
+      const optionalSections = template.sections
+        .filter((section) => !section.required)
+        .map((section) => `"${section.name}"`)
+        .join(", ");
+
+      const allSections = template.sections
+        .map((section) => `"${section.name}": ${section.description}`)
+        .join("; ");
+
+      toolDescription = `Generate the final PRD content following the template structure. The output must include a title (string), optional summary (string), and sections array with objects containing title and content fields. Required sections: ${
+        requiredSections || "none"
+      }. ${
+        optionalSections ? `Optional sections: ${optionalSections}. ` : ""
+      }Section descriptions: ${allSections}. Call this tool when you have completed the PRD and are ready to output the final content.`;
+    }
+
+    const result = await generateText({
       model: model,
       system: systemPrompt,
       maxTokens: 10000,
       temperature: 0.7,
       prompt: messages.length === 0 ? request.prompt : undefined,
       messages: messages.length > 0 ? messages : undefined,
-      // Use a template-driven schema when a template is supplied, otherwise fall back to the generic one
-      schema: template
-        ? buildSchemaFromTemplate(template)
-        : z.object({
+      tools: {
+        generatePRD: {
+          description: toolDescription,
+          parameters: z.object({
             title: z.string(),
-            summary: z.string(),
+            summary: z.string().optional(),
             sections: z.array(
               z.object({
                 title: z.string(),
@@ -281,10 +282,34 @@ Please ensure the generated content follows this template structure and includes
               })
             ),
           }),
+        },
+      },
+      toolChoice: "auto",
     });
 
     const endTime = Date.now();
     const generationTime = (endTime - startTime) / 1000;
+
+    // Extract the PRD content from tool calls or use text response
+    let generatedContent: PRDContent | string = "";
+    let isComplete = false;
+
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      // Find the generatePRD tool call
+      const prdToolCall = result.toolCalls.find(
+        (call) => call.toolName === "generatePRD"
+      );
+      if (prdToolCall && prdToolCall.args) {
+        generatedContent = prdToolCall.args as PRDContent;
+        isComplete = true; // PRD generation is complete
+      }
+    } else {
+      // No tool call made, this is conversational response
+      generatedContent = result.text;
+      isComplete = false; // Still in conversation mode
+    }
+
+    const outputLength = JSON.stringify(generatedContent).length;
 
     // Track performance metrics
     await trackPerformanceMetric("generation_time", generationTime, "seconds", {
@@ -313,7 +338,7 @@ Please ensure the generated content follows this template structure and includes
     // Update Langfuse generation with results
     if (generation) {
       generation.end({
-        output: result.object,
+        output: generatedContent,
         usage: {
           input: result.usage?.promptTokens || 0,
           output: result.usage?.completionTokens || 0,
@@ -321,8 +346,9 @@ Please ensure the generated content follows this template structure and includes
         },
         metadata: {
           generationTime,
-          outputLength: JSON.stringify(result.object).length,
+          outputLength,
           completedAt: new Date().toISOString(),
+          toolCallsUsed: result.toolCalls?.length || 0,
         },
       });
     }
@@ -337,30 +363,41 @@ Please ensure the generated content follows this template structure and includes
         generationTime,
         inputTokens: result.usage?.promptTokens || 0,
         outputTokens: result.usage?.completionTokens || 0,
-        outputLength: JSON.stringify(result.object).length,
+        outputLength,
         success: true,
+        toolCallsUsed: result.toolCalls?.length || 0,
+        isComplete,
+        responseType: isComplete ? "prd" : "conversation",
       },
       userId,
       effectiveSessionId
     );
 
     console.log("AI generation completed in", generationTime, "seconds");
-    console.log(
-      "Generated content length:",
-      JSON.stringify(result.object).length
-    );
+    console.log("Generated content length:", outputLength);
+    console.log("Is PRD complete:", isComplete);
     console.log(
       "Generated content preview:",
-      JSON.stringify(result.object).substring(0, 200) + "..."
+      JSON.stringify(generatedContent).substring(0, 200) + "..."
     );
 
+    if (result.toolCalls && result.toolCalls.length > 0) {
+      console.log(
+        "Tool calls made:",
+        result.toolCalls.map((call) => call.toolName)
+      );
+    } else {
+      console.log("No tool calls made - conversational response");
+    }
+
     return {
-      generated_content: result.object as PRDContent,
+      generated_content: generatedContent,
       tokens_used: result.usage?.totalTokens || 0,
       input_tokens: result.usage?.promptTokens || 0,
       output_tokens: result.usage?.completionTokens || 0,
       model_used: modelName,
       generation_time: generationTime,
+      is_complete: isComplete,
       langfuseData,
     };
   } catch (error) {

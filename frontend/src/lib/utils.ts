@@ -61,3 +61,34 @@ export function sanitizeFilename(filename: string): string {
     .replace(/^_|_$/g, "") // Remove leading/trailing underscores
     .toLowerCase();
 }
+
+// Utility function to convert simple markdown to HTML
+export function markdownToHtml(markdown: string): string {
+  return (
+    markdown
+      // Headers
+      .replace(/^### (.+)$/gm, "<h3>$1</h3>")
+      .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+      .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+      // Bold and italic
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+      // Lists
+      .replace(/^- (.+)$/gm, "<li>$1</li>")
+      .replace(/^(\d+)\. (.+)$/gm, "<li>$2</li>")
+      // Wrap consecutive list items in ul tags
+      .replace(/(<li>[\s\S]*?<\/li>)(?!\s*<li>)/g, "<ul>$1</ul>")
+      // Paragraphs - split by double newlines and wrap in p tags
+      .split(/\n\s*\n/)
+      .map((paragraph) => {
+        const trimmed = paragraph.trim();
+        if (!trimmed) return "";
+        // Don't wrap if it's already a heading, list, or other block element
+        if (trimmed.match(/^<(h[1-6]|ul|ol|li)/)) {
+          return trimmed;
+        }
+        return `<p>${trimmed.replace(/\n/g, "<br>")}</p>`;
+      })
+      .join("\n")
+  );
+}

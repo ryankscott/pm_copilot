@@ -185,6 +185,15 @@ const insertPredefinedTemplates = (db: sqlite3.Database): Promise<void> => {
               required: false,
               order: 8,
             },
+            {
+              id: "open-questions",
+              name: "Open Questions/Assumptions",
+              description:
+                "Outstanding questions, assumptions, and items requiring further investigation",
+              placeholder: "List open questions and key assumptions...",
+              required: false,
+              order: 9,
+            },
           ],
         },
         {

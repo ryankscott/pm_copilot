@@ -66,6 +66,7 @@ export interface ConversationMessage {
   cost?: number;
   model_used?: string;
   has_error?: boolean;
+  is_complete?: boolean; // True when the generatePRD tool was used
   langfuseData?: LangfuseData;
 }
 
@@ -89,6 +90,7 @@ export interface GenerateContentResponse {
   output_tokens?: number;
   tokens_used?: number;
   generation_time?: number;
+  is_complete?: boolean;
   langfuseData?: {
     traceId: string;
     generationId: string;

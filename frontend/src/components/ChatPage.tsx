@@ -12,6 +12,7 @@ import {
   Wand2,
   Loader2,
   Paperclip,
+  Plus,
 } from "lucide-react";
 import {
   Select,
@@ -26,12 +27,15 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { usePrds } from "@/hooks/use-prd-queries";
+import { usePrds, useCreatePrd } from "@/hooks/use-prd-queries";
 import { useTemplates } from "@/hooks/use-template-queries";
 import { useLLMStore } from "@/store/llm-store";
 import { prdApi } from "@/lib/api";
 import { MetadataFooter } from "./MetadataFooter";
 import AIAvatar from "./ui/AIAvatar";
+import { useRouter } from "@tanstack/react-router";
+import { useToast } from "@/hooks/use-toast";
+import { markdownToHtml } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -40,6 +44,7 @@ import type {
   PRD,
   PRDContent,
   GenerateContentRequest,
+  GenerateContentResponse,
   CritiqueRequest,
   QuestionRequest,
   Template,
@@ -56,6 +61,9 @@ export function ChatPage() {
   const { data: prds } = usePrds();
   const { data: templates } = useTemplates();
   const { getCurrentProvider, settings } = useLLMStore();
+  const router = useRouter();
+  const { success, error: errorToast } = useToast();
+  const createPrd = useCreatePrd();
 
   // Chat state
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -114,7 +122,8 @@ export function ChatPage() {
     generationTime?: number,
     cost?: number,
     modelUsed?: string,
-    langfuseData?: { traceId: string; generationId: string }
+    langfuseData?: { traceId: string; generationId: string },
+    isComplete?: boolean
   ): ConversationMessage => ({
     role: "assistant",
     content,
@@ -125,6 +134,7 @@ export function ChatPage() {
     ...(cost && { cost }),
     ...(modelUsed && { model_used: modelUsed }),
     ...(langfuseData && { langfuseData }),
+    ...(isComplete && { is_complete: isComplete }),
   });
 
   // Calculate cost
@@ -257,13 +267,21 @@ export function ChatPage() {
         if (typeof generatedContent === "string") {
           responseContent = generatedContent;
         } else if (generatedContent && typeof generatedContent === "object") {
-          // Handle PRDContent object
-          const prdContent = generatedContent as PRDContent;
-          responseContent =
-            `# ${prdContent.title}\n\n**Summary:** ${prdContent.summary}\n\n` +
-            prdContent.sections
-              .map((s) => `## ${s.title}\n\n${s.content}`)
-              .join("\n\n");
+          // For PRDContent object, store the object directly in the message
+          // The renderMessage function will handle the display conversion
+          const assistantMessage = createAssistantMessage(
+            generatedContent, // Store as PRDContent object
+            result.input_tokens,
+            result.output_tokens,
+            result.generation_time,
+            cost,
+            settings.selectedModel,
+            result.langfuseData,
+            (result as GenerateContentResponse).is_complete
+          );
+
+          setMessages([...newMessages, assistantMessage]);
+          return; // Exit early since we've created the message
         } else {
           responseContent = "No content generated";
         }
@@ -276,7 +294,10 @@ export function ChatPage() {
         result.generation_time,
         cost,
         settings.selectedModel,
-        result.langfuseData
+        result.langfuseData,
+        chatMode === "create"
+          ? (result as GenerateContentResponse).is_complete
+          : false
       );
 
       setMessages([...newMessages, assistantMessage]);
@@ -305,6 +326,80 @@ export function ChatPage() {
   // Clear chat
   const clearChat = () => {
     setMessages([]);
+  };
+
+  // Create PRD from last AI message
+  const handleCreatePrdFromMessage = async (message: ConversationMessage) => {
+    if (message.role !== "assistant" || !message.content) return;
+
+    try {
+      let title = "AI Generated PRD";
+      let content = "";
+
+      if (typeof message.content === "string") {
+        // Convert markdown to HTML if it's a string
+        content = markdownToHtml(message.content);
+
+        // Try to extract title from content if it starts with a heading
+        const titleMatch = message.content.match(/^#\s+(.+?)$/m);
+        if (titleMatch) {
+          title = titleMatch[1];
+        }
+      } else if (typeof message.content === "object") {
+        // Handle PRDContent object - convert to rich HTML
+        const prdContent = message.content as PRDContent;
+        title = prdContent.title || title;
+
+        // Create rich HTML content
+        const htmlParts: string[] = [];
+
+        // Add title
+        if (prdContent.title) {
+          htmlParts.push(`<h1>${prdContent.title}</h1>`);
+        }
+
+        // Add summary
+        if (prdContent.summary) {
+          htmlParts.push(
+            `<p><strong>Summary:</strong> ${prdContent.summary}</p>`
+          );
+        }
+
+        // Add sections
+        if (prdContent.sections && prdContent.sections.length > 0) {
+          prdContent.sections.forEach((section) => {
+            htmlParts.push(`<h2>${section.title}</h2>`);
+
+            // Convert section content from markdown to HTML
+            const sectionHtml = markdownToHtml(section.content);
+
+            htmlParts.push(sectionHtml);
+          });
+        }
+
+        content = htmlParts.join("\n\n");
+      }
+
+      const newPrd = await createPrd.mutateAsync({
+        title,
+        content,
+        templateId: selectedTemplateId || undefined,
+      });
+
+      // Navigate to the new PRD
+      await router.navigate({
+        to: "/prd/$prdId",
+        params: { prdId: newPrd.id! },
+      });
+
+      success("PRD Created", "Successfully created PRD from AI response");
+    } catch (error) {
+      console.error("Failed to create PRD:", error);
+      errorToast(
+        "Failed to create PRD",
+        (error as Error)?.message || "Please try again later."
+      );
+    }
   };
 
   // Render message
@@ -357,17 +452,46 @@ export function ChatPage() {
           </div>
 
           {message.role === "assistant" && (
-            <MetadataFooter
-              inputTokens={message.input_tokens}
-              outputTokens={message.output_tokens}
-              generationTime={message.total_time}
-              cost={message.cost}
-              showFeedback={true}
-              provider={getCurrentProvider().name}
-              model={settings.selectedModel}
-              langfuseData={message.langfuseData}
-              className="mt-3 pt-3 border-t"
-            />
+            <>
+              <MetadataFooter
+                inputTokens={message.input_tokens}
+                outputTokens={message.output_tokens}
+                generationTime={message.total_time}
+                cost={message.cost}
+                showFeedback={true}
+                provider={getCurrentProvider().name}
+                model={settings.selectedModel}
+                langfuseData={message.langfuseData}
+                className="mt-3 pt-3 border-t"
+              />
+
+              {/* Create PRD Button - only show when the generatePRD tool was used */}
+              {chatMode === "create" &&
+                message.is_complete &&
+                message.content &&
+                !isLoading && (
+                  <div className="mt-3 pt-3 border-t border-border flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleCreatePrdFromMessage(message)}
+                      disabled={createPrd.isPending}
+                      className="flex items-center gap-2"
+                    >
+                      {createPrd.isPending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Creating PRD...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4" />
+                          Create PRD
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+            </>
           )}
         </div>
 
@@ -446,9 +570,6 @@ export function ChatPage() {
                       <SelectItem key={template.id} value={template.id}>
                         <div className="flex flex-col items-start">
                           <span className="font-medium">{template.title}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {template.category}
-                          </span>
                         </div>
                       </SelectItem>
                     ))}
@@ -458,9 +579,6 @@ export function ChatPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <p className="text-sm text-muted-foreground">
-                {modeDescriptions[chatMode]}
-              </p>
               {chatMode === "create" && !selectedTemplateId && (
                 <p className="text-red-500 text-sm">
                   Select a template to get started.

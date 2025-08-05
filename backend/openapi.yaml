@@ -87,7 +87,7 @@ paths:
   /prds/{id}/generate:
     post:
       summary: Generate AI content for a PRD
-      description: Generate content for a specific section of a PRD or enhance existing content using AI
+      description: Generate content for a specific section of a PRD or enhance existing content using AI. Returns either conversational responses during discussion or structured PRD content when generation is complete.
       parameters:
         - name: id
           in: path
@@ -103,7 +103,7 @@ paths:
               $ref: "#/components/schemas/GenerateContentRequest"
       responses:
         "200":
-          description: Successfully generated content
+          description: Successfully generated content - either conversational response or structured PRD
           content:
             application/json:
               schema:
@@ -538,7 +538,12 @@ components:
       type: object
       properties:
         generated_content:
-          $ref: "#/components/schemas/PRDContent"
+          oneOf:
+            - type: string
+              description: Conversational response when having a discussion
+            - $ref: "#/components/schemas/PRDContent"
+              description: Structured PRD content when generation is complete
+          description: Either a string for conversation or structured PRD content when complete
         input_tokens:
           type: integer
           description: Number of input tokens used
@@ -561,6 +566,10 @@ components:
           items:
             type: string
           description: Additional suggestions for improving the content
+        is_complete:
+          type: boolean
+          description: Whether the PRD generation is complete (true) or still in conversation mode (false)
+          example: false
     CritiqueResponse:
       type: object
       properties:

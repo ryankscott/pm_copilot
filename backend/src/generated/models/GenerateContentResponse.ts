@@ -4,7 +4,10 @@
 /* eslint-disable */
 import type { PRDContent } from './PRDContent';
 export type GenerateContentResponse = {
-    generated_content?: PRDContent;
+    /**
+     * Either a string for conversation or structured PRD content when complete
+     */
+    generated_content?: (string | PRDContent);
     /**
      * Number of input tokens used
      */
@@ -29,5 +32,9 @@ export type GenerateContentResponse = {
      * Additional suggestions for improving the content
      */
     suggestions?: Array<string>;
+    /**
+     * Whether the PRD generation is complete (true) or still in conversation mode (false)
+     */
+    is_complete?: boolean;
 };
 
