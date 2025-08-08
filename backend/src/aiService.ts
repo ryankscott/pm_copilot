@@ -263,9 +263,8 @@ export const generateContent = async (
     }
 
     const result = await generateText({
-      model: model,
+      model: model as any,
       system: systemPrompt,
-      maxTokens: 10000,
       temperature: 0.7,
       prompt: messages.length === 0 ? request.prompt : undefined,
       messages: messages.length > 0 ? messages : undefined,
@@ -299,8 +298,8 @@ export const generateContent = async (
       const prdToolCall = result.toolCalls.find(
         (call) => call.toolName === "generatePRD"
       );
-      if (prdToolCall && prdToolCall.args) {
-        generatedContent = prdToolCall.args as PRDContent;
+      if (prdToolCall) {
+        generatedContent = (prdToolCall as any).args as PRDContent;
         isComplete = true; // PRD generation is complete
       }
     } else {
@@ -315,8 +314,8 @@ export const generateContent = async (
     await trackPerformanceMetric("generation_time", generationTime, "seconds", {
       provider: request.provider?.type || "ollama",
       model: modelName,
-      inputTokens: result.usage?.promptTokens || 0,
-      outputTokens: result.usage?.completionTokens || 0,
+      inputTokens: result.usage?.inputTokens || 0,
+      outputTokens: result.usage?.outputTokens || 0,
       prdId,
       userId,
     });
@@ -328,8 +327,8 @@ export const generateContent = async (
       {
         provider: request.provider?.type || "ollama",
         model: modelName,
-        inputTokens: result.usage?.promptTokens || 0,
-        outputTokens: result.usage?.completionTokens || 0,
+        inputTokens: result.usage?.inputTokens || 0,
+        outputTokens: result.usage?.outputTokens || 0,
         prdId,
         userId,
       }
@@ -340,8 +339,8 @@ export const generateContent = async (
       generation.end({
         output: generatedContent,
         usage: {
-          input: result.usage?.promptTokens || 0,
-          output: result.usage?.completionTokens || 0,
+          input: result.usage?.inputTokens || 0,
+          output: result.usage?.outputTokens || 0,
           total: result.usage?.totalTokens || 0,
         },
         metadata: {
@@ -361,8 +360,8 @@ export const generateContent = async (
         provider: request.provider?.type || "ollama",
         model: modelName,
         generationTime,
-        inputTokens: result.usage?.promptTokens || 0,
-        outputTokens: result.usage?.completionTokens || 0,
+        inputTokens: result.usage?.inputTokens || 0,
+        outputTokens: result.usage?.outputTokens || 0,
         outputLength,
         success: true,
         toolCallsUsed: result.toolCalls?.length || 0,
@@ -393,8 +392,8 @@ export const generateContent = async (
     return {
       generated_content: generatedContent,
       tokens_used: result.usage?.totalTokens || 0,
-      input_tokens: result.usage?.promptTokens || 0,
-      output_tokens: result.usage?.completionTokens || 0,
+      input_tokens: result.usage?.inputTokens || 0,
+      output_tokens: result.usage?.outputTokens || 0,
       model_used: modelName,
       generation_time: generationTime,
       is_complete: isComplete,
@@ -539,10 +538,9 @@ export const critiquePRD = async (
     console.log("Provider:", request.provider?.type || "ollama (default)");
 
     const result = await generateObject({
-      model,
+      model: model as any,
       system: systemPrompt,
       prompt: userPrompt,
-      maxTokens: 2000,
       temperature: 0.3,
       schema: z.object({
         summary: z.string(),
@@ -556,8 +554,8 @@ export const critiquePRD = async (
     await trackPerformanceMetric("critique_time", generationTime, "seconds", {
       provider: request.provider?.type || "ollama",
       model: modelName,
-      inputTokens: result.usage?.promptTokens || 0,
-      outputTokens: result.usage?.completionTokens || 0,
+      inputTokens: result.usage?.inputTokens || 0,
+      outputTokens: result.usage?.outputTokens || 0,
       prdId,
       userId,
     });
@@ -567,8 +565,8 @@ export const critiquePRD = async (
       generation.end({
         output: result.object,
         usage: {
-          input: result.usage?.promptTokens || 0,
-          output: result.usage?.completionTokens || 0,
+          input: result.usage?.inputTokens || 0,
+          output: result.usage?.outputTokens || 0,
           total: result.usage?.totalTokens || 0,
         },
         metadata: {
@@ -587,8 +585,8 @@ export const critiquePRD = async (
         provider: request.provider?.type || "ollama",
         model: modelName,
         generationTime,
-        inputTokens: result.usage?.promptTokens || 0,
-        outputTokens: result.usage?.completionTokens || 0,
+        inputTokens: result.usage?.inputTokens || 0,
+        outputTokens: result.usage?.outputTokens || 0,
         outputLength: JSON.stringify(result.object).length,
         success: true,
       },
@@ -601,8 +599,8 @@ export const critiquePRD = async (
 
     return {
       summary: result.object.summary,
-      input_tokens: result.usage?.promptTokens || 0,
-      output_tokens: result.usage?.completionTokens || 0,
+      input_tokens: result.usage?.inputTokens || 0,
+      output_tokens: result.usage?.outputTokens || 0,
       tokens_used: result.usage?.totalTokens || 0,
       model_used: modelName,
       generation_time: generationTime,
@@ -674,9 +672,8 @@ export const testProvider = async (
 
     // Simple test prompt to verify the provider is working
     const result = await generateObject({
-      model: model,
+      model: model as any,
       prompt: "Say 'Hello from AI provider test!' in exactly those words.",
-      maxTokens: 50,
       temperature: 0.1, // Very low temperature for consistent response
       schema: z.object({
         greeting: z.string(),
@@ -788,7 +785,7 @@ export const answerQuestion = async (
 
     // Generate response using AI SDK
     const result = await generateObject({
-      model,
+      model: model as any,
       messages,
       schema: z.object({
         answer: z.string().describe("The answer to the question about the PRD"),
@@ -804,7 +801,6 @@ export const answerQuestion = async (
           .describe("Suggested follow-up questions"),
       }),
       temperature: 0.7,
-      maxTokens: 2000,
     });
 
     const endTime = Date.now();
@@ -834,8 +830,8 @@ export const answerQuestion = async (
         provider: request.provider?.type,
         model: modelName,
         generation_time: generationTime,
-        input_tokens: result.usage?.promptTokens,
-        output_tokens: result.usage?.completionTokens,
+        input_tokens: result.usage?.inputTokens,
+        output_tokens: result.usage?.outputTokens,
       },
       userId,
       sessionId
@@ -845,8 +841,8 @@ export const answerQuestion = async (
       answer: result.object.answer,
       related_sections: result.object.related_sections || [],
       follow_up_questions: result.object.follow_up_questions || [],
-      input_tokens: result.usage?.promptTokens,
-      output_tokens: result.usage?.completionTokens,
+      input_tokens: result.usage?.inputTokens,
+      output_tokens: result.usage?.outputTokens,
       tokens_used: result.usage?.totalTokens,
       generation_time: generationTime,
       langfuseData: traceData,
