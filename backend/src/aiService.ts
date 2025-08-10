@@ -672,7 +672,7 @@ export const testProvider = async (
 
     // Simple test prompt to verify the provider is working
     const result = await generateObject({
-      model: model as any,
+      model: model,
       prompt: "Say 'Hello from AI provider test!' in exactly those words.",
       temperature: 0.1, // Very low temperature for consistent response
       schema: z.object({
