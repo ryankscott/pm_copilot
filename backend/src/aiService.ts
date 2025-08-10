@@ -785,7 +785,7 @@ export const answerQuestion = async (
 
     // Generate response using AI SDK
     const result = await generateObject({
-      model: model as any,
+      model: model,
       messages,
       schema: z.object({
         answer: z.string().describe("The answer to the question about the PRD"),
