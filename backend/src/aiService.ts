@@ -538,7 +538,7 @@ export const critiquePRD = async (
     console.log("Provider:", request.provider?.type || "ollama (default)");
 
     const result = await generateObject({
-      model: model as any,
+      model: model,
       system: systemPrompt,
       prompt: userPrompt,
       temperature: 0.3,
