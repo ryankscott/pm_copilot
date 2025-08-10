@@ -14,9 +14,9 @@ import type {
   GenerateContentRequest,
   ConversationMessage,
   LLMProviderConfig,
-  LLMModel,
   PRDContent,
 } from "@/types";
+import { calculateCost } from "@/lib/cost";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
@@ -28,22 +28,7 @@ import { MetadataFooter } from "./MetadataFooter";
 // Utility functions moved outside component
 const generateRequestId = () => Math.random().toString(36).substr(2, 9);
 
-const calculateCost = (
-  inputTokens: number,
-  outputTokens: number,
-  modelId: string,
-  provider: LLMProviderConfig
-): number => {
-  if (!modelId || !provider || !provider.models) return 0;
-
-  const model = provider.models.find((m: LLMModel) => m.id === modelId);
-  if (!model || !model.costPer1MTokens) return 0;
-
-  const inputCost = (inputTokens / 1000000) * model.costPer1MTokens.input;
-  const outputCost = (outputTokens / 1000000) * model.costPer1MTokens.output;
-
-  return inputCost + outputCost;
-};
+// calculateCost now imported from shared util
 
 const createUserMessage = (content: string): ConversationMessage => ({
   role: "user",

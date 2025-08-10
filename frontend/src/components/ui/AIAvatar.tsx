@@ -10,12 +10,14 @@ interface AIAvatarProps {
   provider?: string;
   model?: string;
   orientation?: "vertical" | "horizontal";
+  showName?: boolean;
 }
 
 const AIAvatar: React.FC<AIAvatarProps> = ({
   provider,
   model,
   orientation = "horizontal",
+  showName = true,
 }) => {
   const getLogo = () => {
     if (model) {
@@ -58,7 +60,7 @@ const AIAvatar: React.FC<AIAvatarProps> = ({
         alt={`${getModelName()} logo`}
         className="w-4 h-4"
       />
-      <span className="text-xs">{getModelName()}</span>
+      {showName && <span className="text-xs">{getModelName()}</span>}
     </div>
   );
 };

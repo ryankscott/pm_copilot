@@ -1,0 +1,377 @@
+import {
+  ThreadPrimitive,
+  ComposerPrimitive,
+  MessagePrimitive,
+  ActionBarPrimitive,
+  BranchPickerPrimitive,
+  ErrorPrimitive,
+  useMessage,
+} from "@assistant-ui/react";
+
+import { motion } from "framer-motion";
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  PlusIcon,
+  CopyIcon,
+  CheckIcon,
+  PencilIcon,
+  RefreshCwIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  Square,
+} from "lucide-react";
+
+import { TooltipIconButton } from "@/components/assistant-ui/tooltip-icon-button";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { MarkdownText } from "./markdown-text";
+import { ToolFallback } from "./tool-fallback";
+import { useLLMStore } from "@/store/llm-store";
+import { useMessageMetadataStore } from "@/store/message-metadata-store";
+import AIAvatar from "@/components/ui/AIAvatar";
+import { MetadataFooter } from "@/components/MetadataFooter";
+import type { FC } from "react";
+
+export const Thread: FC = () => {
+  return (
+    <ThreadPrimitive.Root
+      className="bg-background flex h-full flex-col"
+      style={{
+        ["--thread-max-width" as string]: "48rem",
+        ["--thread-padding-x" as string]: "1rem",
+      }}
+    >
+      <ThreadPrimitive.Viewport className="relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-scroll">
+        <ThreadWelcome />
+
+        <ThreadPrimitive.Messages
+          components={{
+            UserMessage,
+            EditComposer,
+            AssistantMessage,
+          }}
+        />
+
+        <ThreadPrimitive.If empty={false}>
+          <div className="min-h-6 min-w-6 shrink-0" />
+        </ThreadPrimitive.If>
+      </ThreadPrimitive.Viewport>
+
+      <Composer />
+    </ThreadPrimitive.Root>
+  );
+};
+
+const ThreadScrollToBottom: FC = () => {
+  return (
+    <ThreadPrimitive.ScrollToBottom asChild>
+      <TooltipIconButton
+        tooltip="Scroll to bottom"
+        variant="outline"
+        className="dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible"
+      >
+        <ArrowDownIcon />
+      </TooltipIconButton>
+    </ThreadPrimitive.ScrollToBottom>
+  );
+};
+
+const ThreadWelcome: FC = () => {
+  return (
+    <ThreadPrimitive.Empty>
+      <div className="mx-auto flex w-full max-w-[var(--thread-max-width)] flex-grow flex-col px-[var(--thread-padding-x)]">
+        <div className="flex w-full flex-grow flex-col items-center justify-center">
+          <div className="flex size-full flex-col justify-center px-8 md:mt-20"></div>
+        </div>
+      </div>
+    </ThreadPrimitive.Empty>
+  );
+};
+
+const Composer: FC = () => {
+  return (
+    <div className="bg-background relative mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 px-[var(--thread-padding-x)] pb-4 md:pb-6">
+      <ThreadScrollToBottom />
+      <ComposerPrimitive.Root className="focus-within:ring-offset-2 relative flex w-full flex-col  focus-within:ring-2 focus-within:ring-black dark:focus-within:ring-white">
+        <ComposerPrimitive.Input
+          placeholder="Send a message..."
+          className="bg-muted border-border dark:border-muted-foreground/15 focus:outline-primary placeholder:text-muted-foreground max-h-[calc(50dvh)] min-h-16 w-full resize-none  border-x border-t px-4 pt-2 pb-3 text-base outline-none"
+          rows={1}
+          autoFocus
+          aria-label="Message input"
+        />
+        <ComposerAction />
+      </ComposerPrimitive.Root>
+    </div>
+  );
+};
+
+const ComposerAction: FC = () => {
+  return (
+    <div className="bg-muted border-border dark:border-muted-foreground/15 relative flex items-center justify-between border-x border-b p-2">
+      <TooltipIconButton
+        tooltip="Attach file"
+        variant="ghost"
+        className="hover:bg-foreground/15 dark:hover:bg-background/50 scale-115 p-3.5"
+        onClick={() => {
+          console.log("Attachment clicked - not implemented");
+        }}
+      >
+        <PlusIcon />
+      </TooltipIconButton>
+
+      <ThreadPrimitive.If running={false}>
+        <ComposerPrimitive.Send asChild>
+          <Button
+            type="submit"
+            variant="default"
+            className="border-none shadow-none"
+            aria-label="Send message"
+          >
+            <ArrowUpIcon className="size-5" />
+          </Button>
+        </ComposerPrimitive.Send>
+      </ThreadPrimitive.If>
+
+      <ThreadPrimitive.If running>
+        <ComposerPrimitive.Cancel asChild>
+          <Button
+            type="button"
+            variant="default"
+            className="dark:border-muted-foreground/90 border-muted-foreground/60 hover:bg-primary/75 size-8 border"
+            aria-label="Stop generating"
+          >
+            <Square className="size-3.5 fill-green dark:size-4 dark:fill-black" />
+          </Button>
+        </ComposerPrimitive.Cancel>
+      </ThreadPrimitive.If>
+    </div>
+  );
+};
+
+const MessageError: FC = () => {
+  return (
+    <MessagePrimitive.Error>
+      <ErrorPrimitive.Root className="border-destructive bg-destructive/10 dark:bg-destructive/5 text-destructive mt-2 rounded-md border p-3 text-sm dark:text-red-200">
+        <ErrorPrimitive.Message className="line-clamp-2" />
+      </ErrorPrimitive.Root>
+    </MessagePrimitive.Error>
+  );
+};
+
+const AssistantMessage: FC = () => {
+  return (
+    <MessagePrimitive.Root asChild>
+      <motion.div
+        className="relative mx-auto grid w-full max-w-[var(--thread-max-width)] grid-cols-[auto_auto_1fr] grid-rows-[auto_1fr_auto] px-[var(--thread-padding-x)] py-4"
+        initial={{ y: 5, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        data-role="assistant"
+      >
+        <AIAvatarDisplay />
+
+        <div className="text-foreground col-span-2 col-start-2 row-start-1 ml-4 leading-7 break-words">
+          <MessagePrimitive.Content
+            components={{
+              Text: MarkdownText,
+              tools: { Fallback: ToolFallback },
+            }}
+          />
+          <MessageError />
+        </div>
+
+        <AssistantActionBar />
+
+        <BranchPicker className="col-start-2 row-start-2 mr-2 -ml-2" />
+
+        {/* Message Metadata Footer */}
+        <div className="col-span-2 col-start-2 row-start-3 ml-4 mt-2">
+          <MessageMetadataDisplay />
+        </div>
+      </motion.div>
+    </MessagePrimitive.Root>
+  );
+};
+
+const AIAvatarDisplay: FC = () => {
+  const { getCurrentProvider, getCurrentModel } = useLLMStore();
+  const currentProvider = getCurrentProvider();
+  const currentModel = getCurrentModel();
+
+  return (
+    <div className="flex w-12 bg-gray-100 h-12 rounded-2xl items-center justify-center">
+      <AIAvatar
+        orientation="vertical"
+        model={currentModel?.name}
+        provider={currentProvider.name}
+        showName={false}
+      />
+    </div>
+  );
+};
+
+const MessageMetadataDisplay: FC = () => {
+  const { getCurrentProvider, getCurrentModel } = useLLMStore();
+  const { getMessageMetadata, matchPendingMetadata } =
+    useMessageMetadataStore();
+  const currentProvider = getCurrentProvider();
+  const currentModel = getCurrentModel();
+  const message = useMessage();
+
+  // Try to get existing metadata
+  let metadata = getMessageMetadata(message.id);
+
+  // If no metadata found, try to match with pending metadata
+  if (!metadata && message.content) {
+    const content = Array.isArray(message.content)
+      ? message.content
+          .filter((part) => part.type === "text")
+          .map((part) => (part.type === "text" ? part.text : ""))
+          .join("")
+      : message.content;
+
+    if (typeof content === "string" && content.length > 0) {
+      matchPendingMetadata(message.id, content);
+      metadata = getMessageMetadata(message.id);
+    }
+  }
+
+  // Only show metadata footer if we have metadata
+  if (!metadata) {
+    return null;
+  }
+
+  return (
+    <MetadataFooter
+      inputTokens={metadata?.inputTokens}
+      outputTokens={metadata?.outputTokens}
+      generationTime={metadata?.generationTime}
+      cost={metadata?.cost}
+      showFeedback={true}
+      provider={metadata?.provider || currentProvider.name}
+      model={metadata?.model || currentModel?.name}
+      langfuseData={metadata?.langfuseData}
+    />
+  );
+};
+
+const AssistantActionBar: FC = () => {
+  return (
+    <ActionBarPrimitive.Root
+      hideWhenRunning
+      autohide="not-last"
+      autohideFloat="single-branch"
+      className="text-muted-foreground data-floating:bg-background col-start-3 row-start-2 mt-3 ml-3 flex gap-1 data-floating:absolute data-floating:mt-2 data-floating:rounded-md data-floating:border data-floating:p-1 data-floating:shadow-sm"
+    >
+      <ActionBarPrimitive.Copy asChild>
+        <TooltipIconButton tooltip="Copy">
+          <MessagePrimitive.If copied>
+            <CheckIcon />
+          </MessagePrimitive.If>
+          <MessagePrimitive.If copied={false}>
+            <CopyIcon />
+          </MessagePrimitive.If>
+        </TooltipIconButton>
+      </ActionBarPrimitive.Copy>
+      <ActionBarPrimitive.Reload asChild>
+        <TooltipIconButton tooltip="Refresh">
+          <RefreshCwIcon />
+        </TooltipIconButton>
+      </ActionBarPrimitive.Reload>
+    </ActionBarPrimitive.Root>
+  );
+};
+
+const UserMessage: FC = () => {
+  return (
+    <MessagePrimitive.Root asChild>
+      <motion.div
+        className="mx-auto grid w-full max-w-[var(--thread-max-width)] auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] gap-y-1 px-[var(--thread-padding-x)] py-4 [&:where(>*)]:col-start-2"
+        initial={{ y: 5, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        data-role="user"
+      >
+        <UserActionBar />
+
+        <div className="bg-muted text-foreground col-start-2 rounded-3xl px-5 py-2.5 break-words">
+          <MessagePrimitive.Content components={{ Text: MarkdownText }} />
+        </div>
+
+        <BranchPicker className="col-span-full col-start-1 row-start-3 -mr-1 justify-end" />
+      </motion.div>
+    </MessagePrimitive.Root>
+  );
+};
+
+const UserActionBar: FC = () => {
+  return (
+    <ActionBarPrimitive.Root
+      hideWhenRunning
+      autohide="not-last"
+      className="col-start-1 mt-2.5 mr-3 flex flex-col items-end"
+    >
+      <ActionBarPrimitive.Edit asChild>
+        <TooltipIconButton tooltip="Edit">
+          <PencilIcon />
+        </TooltipIconButton>
+      </ActionBarPrimitive.Edit>
+    </ActionBarPrimitive.Root>
+  );
+};
+
+const EditComposer: FC = () => {
+  return (
+    <div className="mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 px-[var(--thread-padding-x)]">
+      <ComposerPrimitive.Root className="bg-muted ml-auto flex w-full max-w-7/8 flex-col rounded-xl">
+        <ComposerPrimitive.Input
+          className="text-foreground flex min-h-[60px] w-full resize-none bg-transparent p-4 outline-none"
+          autoFocus
+        />
+
+        <div className="mx-3 mb-3 flex items-center justify-center gap-2 self-end">
+          <ComposerPrimitive.Cancel asChild>
+            <Button variant="ghost" size="sm" aria-label="Cancel edit">
+              Cancel
+            </Button>
+          </ComposerPrimitive.Cancel>
+          <ComposerPrimitive.Send asChild>
+            <Button size="sm" aria-label="Update message">
+              Update
+            </Button>
+          </ComposerPrimitive.Send>
+        </div>
+      </ComposerPrimitive.Root>
+    </div>
+  );
+};
+
+const BranchPicker: FC<BranchPickerPrimitive.Root.Props> = ({
+  className,
+  ...rest
+}) => {
+  return (
+    <BranchPickerPrimitive.Root
+      hideWhenSingleBranch
+      className={cn(
+        "text-muted-foreground inline-flex items-center text-xs",
+        className
+      )}
+      {...rest}
+    >
+      <BranchPickerPrimitive.Previous asChild>
+        <TooltipIconButton tooltip="Previous">
+          <ChevronLeftIcon />
+        </TooltipIconButton>
+      </BranchPickerPrimitive.Previous>
+      <span className="font-medium">
+        <BranchPickerPrimitive.Number /> / <BranchPickerPrimitive.Count />
+      </span>
+      <BranchPickerPrimitive.Next asChild>
+        <TooltipIconButton tooltip="Next">
+          <ChevronRightIcon />
+        </TooltipIconButton>
+      </BranchPickerPrimitive.Next>
+    </BranchPickerPrimitive.Root>
+  );
+};

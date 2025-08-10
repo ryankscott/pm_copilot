@@ -17,6 +17,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { MetadataFooter } from "./MetadataFooter";
+import { calculateCost } from "@/lib/cost";
 
 interface CritiquePanelProps {
   prd: PRD;
@@ -77,25 +78,7 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
     }
   };
 
-  // Helper function to calculate cost based on token usage and model
-  const calculateCost = (
-    inputTokens: number,
-    outputTokens: number,
-    modelId: string
-  ): number => {
-    if (!modelId) return 0;
-
-    const provider = getCurrentProvider();
-    if (!provider || !provider.models) return 0;
-
-    const model = provider.models.find((m) => m.id === modelId);
-    if (!model || !model.costPer1MTokens) return 0;
-
-    const inputCost = (inputTokens / 1000000) * model.costPer1MTokens.input;
-    const outputCost = (outputTokens / 1000000) * model.costPer1MTokens.output;
-
-    return inputCost + outputCost;
-  };
+  // Cost now calculated via shared util using provider from store
 
   return (
     <div className="flex flex-col h-full">
@@ -105,7 +88,8 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
             <div className="py-4 border-b-1">
               <MessageSquare className="w-8 h-8 mx-auto mb-2" />
               <p>
-                Configure your critique settings and click "Generate PRD Critique"
+                Configure your critique settings and click "Generate PRD
+                Critique"
               </p>
               <p className="text-sm mt-1">
                 I'll analyze your PRD and provide detailed feedback and
@@ -278,7 +262,8 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
                       ? calculateCost(
                           critiqueResult.input_tokens,
                           critiqueResult.output_tokens,
-                          settings.selectedModel
+                          settings.selectedModel,
+                          getCurrentProvider()
                         )
                       : undefined
                   }
