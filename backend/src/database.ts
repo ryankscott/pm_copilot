@@ -42,7 +42,6 @@ export const initDB = (filepath: string): Promise<sqlite3.Database> => {
                         id TEXT PRIMARY KEY,
                         title TEXT NOT NULL,
                         description TEXT NOT NULL,
-                        category TEXT NOT NULL,
                         is_custom BOOLEAN DEFAULT FALSE,
                         created_at DATETIME,
                         updated_at DATETIME
@@ -111,7 +110,6 @@ const insertPredefinedTemplates = (db: sqlite3.Database): Promise<void> => {
           id: "feature-prd-template",
           title: "Feature PRD Template",
           description: "Comprehensive template for new feature development",
-          category: "Product",
           sections: [
             {
               id: "exec-summary",
@@ -200,7 +198,6 @@ const insertPredefinedTemplates = (db: sqlite3.Database): Promise<void> => {
           id: "api-integration-template",
           title: "API Integration Template",
           description: "Template for API integration and backend service PRDs",
-          category: "Technical",
           sections: [
             {
               id: "integration-overview",
@@ -257,7 +254,6 @@ const insertPredefinedTemplates = (db: sqlite3.Database): Promise<void> => {
           id: "ux-improvement-template",
           title: "UX Improvement Template",
           description: "Template for user experience improvement initiatives",
-          category: "Design",
           sections: [
             {
               id: "current-experience",
@@ -320,16 +316,8 @@ const insertPredefinedTemplates = (db: sqlite3.Database): Promise<void> => {
 
       templates.forEach((template) => {
         db.run(
-          "INSERT INTO templates (id, title, description, category, is_custom, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [
-            template.id,
-            template.title,
-            template.description,
-            template.category,
-            false,
-            now,
-            now,
-          ],
+          "INSERT INTO templates (id, title, description, is_custom, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+          [template.id, template.title, template.description, false, now, now],
           function (err) {
             if (err) {
               reject(err);

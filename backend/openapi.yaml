@@ -784,7 +784,6 @@ components:
         - id
         - title
         - description
-        - category
         - sections
       properties:
         id:
@@ -796,9 +795,6 @@ components:
         description:
           type: string
           description: Description of the template
-        category:
-          type: string
-          description: Category of the template
         sections:
           type: array
           items:

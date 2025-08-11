@@ -749,15 +749,14 @@ export const getTemplates =
   (db: sqlite3.Database) => (req: Request, res: Response) => {
     const query = `
       SELECT 
-        t.id,
-        t.title,
-        t.description,
-        t.category,
-        t.is_custom as isCustom,
+  t.id,
+  t.title,
+  t.description,
+  t.is_custom as isCustom,
         t.created_at as createdAt,
         t.updated_at as updatedAt
       FROM templates t
-      ORDER BY t.category, t.title
+  ORDER BY t.title
     `;
 
     db.all(query, [], (err, templateRows: any[]) => {
@@ -814,7 +813,6 @@ export const getTemplates =
           id: row.id,
           title: row.title,
           description: row.description,
-          category: row.category,
           sections: sectionsByTemplate[row.id] || [],
           isCustom: !!row.isCustom,
           createdAt: row.createdAt,
@@ -832,11 +830,10 @@ export const getTemplateById =
 
     const templateQuery = `
       SELECT 
-        t.id,
-        t.title,
-        t.description,
-        t.category,
-        t.is_custom as isCustom,
+  t.id,
+  t.title,
+  t.description,
+  t.is_custom as isCustom,
         t.created_at as createdAt,
         t.updated_at as updatedAt
       FROM templates t
@@ -887,7 +884,6 @@ export const getTemplateById =
           id: templateRow.id,
           title: templateRow.title,
           description: templateRow.description,
-          category: templateRow.category,
           sections,
           isCustom: !!templateRow.isCustom,
           createdAt: templateRow.createdAt,

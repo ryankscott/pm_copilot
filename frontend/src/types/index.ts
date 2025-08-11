@@ -20,7 +20,6 @@ export interface Template {
   id: string;
   title: string;
   description: string;
-  category: string;
   sections: TemplateSection[];
   createdAt: string;
   updatedAt: string;
@@ -36,11 +35,11 @@ export interface PRDContent {
   }[];
 }
 
+// Duplicate Template interface (legacy) removed category for consistency
 export interface Template {
   id: string;
   title: string;
   description: string;
-  category: string;
   sections: TemplateSection[];
   createdAt: string;
   updatedAt: string;
