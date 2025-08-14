@@ -32,8 +32,17 @@ import { useMessageMetadataStore } from "@/store/message-metadata-store";
 import AIAvatar from "@/components/ui/AIAvatar";
 import { MetadataFooter } from "@/components/MetadataFooter";
 import type { FC } from "react";
+import { useToast } from "@/hooks/use-toast";
 
-export const Thread: FC = () => {
+interface ThreadProps {
+  canSend?: boolean;
+  cannotSendMessage?: string;
+}
+
+export const Thread: FC<ThreadProps> = ({
+  canSend = true,
+  cannotSendMessage = "Select a template to get started.",
+}) => {
   return (
     <ThreadPrimitive.Root
       className="bg-background flex h-full flex-col"
@@ -58,7 +67,7 @@ export const Thread: FC = () => {
         </ThreadPrimitive.If>
       </ThreadPrimitive.Viewport>
 
-      <Composer />
+      <Composer canSend={canSend} cannotSendMessage={cannotSendMessage} />
     </ThreadPrimitive.Root>
   );
 };
@@ -89,7 +98,8 @@ const ThreadWelcome: FC = () => {
   );
 };
 
-const Composer: FC = () => {
+const Composer: FC<ThreadProps> = ({ canSend = true, cannotSendMessage }) => {
+  const { warning } = useToast();
   return (
     <div className="bg-background relative mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 px-[var(--thread-padding-x)] pb-4 md:pb-6">
       <ThreadScrollToBottom />
@@ -100,14 +110,28 @@ const Composer: FC = () => {
           rows={1}
           autoFocus
           aria-label="Message input"
+          onKeyDown={(e) => {
+            if (!canSend && e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (cannotSendMessage) warning(cannotSendMessage);
+            }
+          }}
         />
-        <ComposerAction />
+        <ComposerAction
+          canSend={canSend}
+          cannotSendMessage={cannotSendMessage}
+        />
       </ComposerPrimitive.Root>
     </div>
   );
 };
 
-const ComposerAction: FC = () => {
+const ComposerAction: FC<ThreadProps> = ({
+  canSend = true,
+  cannotSendMessage,
+}) => {
+  const { warning } = useToast();
   return (
     <div className="bg-muted border-border dark:border-muted-foreground/15 relative flex items-center justify-between border-x border-b p-2">
       <TooltipIconButton
@@ -128,6 +152,18 @@ const ComposerAction: FC = () => {
             variant="default"
             className="border-none shadow-none"
             aria-label="Send message"
+            disabled={!canSend}
+            aria-disabled={!canSend}
+            title={
+              !canSend && cannotSendMessage ? cannotSendMessage : undefined
+            }
+            onClick={(e) => {
+              if (!canSend) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (cannotSendMessage) warning(cannotSendMessage);
+              }
+            }}
           >
             <ArrowUpIcon className="size-5" />
           </Button>

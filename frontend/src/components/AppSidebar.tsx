@@ -10,13 +10,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { PRDList } from "./PRDList";
-import {
-  Settings2,
-  Github,
-  FileText,
-  Layout,
-  MessageSquare,
-} from "lucide-react";
+import { Settings2, Github, FileText, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";

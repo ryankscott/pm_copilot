@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
@@ -25,38 +25,25 @@ import {
 import { usePrds } from "@/hooks/use-prd-queries";
 import { useTemplates } from "@/hooks/use-template-queries";
 import { useLLMStore } from "@/store/llm-store";
-import { useMessageMetadataStore } from "@/store/message-metadata-store";
-import { prdApi } from "@/lib/api";
-import { calculateCost } from "@/lib/cost";
+// runtime handles metadata and API calls now
 
 // Assistant UI imports
-import {
-  AssistantRuntimeProvider,
-  useLocalRuntime,
-  type ChatModelAdapter,
-} from "@assistant-ui/react";
+import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { Thread } from "@/components/assistant-ui/thread";
+import {
+  usePrdRuntime,
+  type PRDContext,
+  type ChatMode,
+} from "@/components/assistant-ui/runtime";
 
-import type {
-  ConversationMessage,
-  PRD,
-  GenerateContentRequest,
-  CritiqueRequest,
-  QuestionRequest,
-  Template,
-} from "@/types";
+import type { PRD, Template } from "@/types";
 
-type ChatMode = "create" | "critique" | "question";
-
-interface PRDContext {
-  prd: PRD;
-  addedAt: Date;
-}
+// ChatMode and PRDContext are now imported from runtime
 
 export function ChatPage() {
   const { data: prds } = usePrds();
   const { data: templates } = useTemplates();
-  const { getCurrentProvider, settings } = useLLMStore();
+  useLLMStore(); // ensure provider settings are initialized elsewhere if needed
 
   // Chat state
   const [chatMode, setChatMode] = useState<ChatMode>("create");
@@ -87,256 +74,8 @@ export function ChatPage() {
     );
   };
 
-  // Create the chat model adapter that handles API calls
-  const chatModelAdapter: ChatModelAdapter = useMemo(
-    () => ({
-      async run({ messages, abortSignal }) {
-        const lastMessage = messages[messages.length - 1];
-        if (lastMessage?.role !== "user") {
-          throw new Error("Last message must be from user");
-        }
-
-        const userContent = Array.isArray(lastMessage.content)
-          ? lastMessage.content
-              .filter((part) => part.type === "text")
-              .map((part) => ("text" in part ? part.text : ""))
-              .join("")
-          : lastMessage.content || "";
-
-        // Convert assistant-ui messages to our conversation format
-        const conversationHistory: ConversationMessage[] = messages
-          .slice(0, -1)
-          .filter((msg) => msg.role === "user" || msg.role === "assistant")
-          .map((msg) => ({
-            role: msg.role as "user" | "assistant",
-            content: Array.isArray(msg.content)
-              ? msg.content
-                  .filter((part) => part.type === "text")
-                  .map((part) => ("text" in part ? part.text : ""))
-                  .join("")
-              : msg.content || "",
-            timestamp: new Date().toISOString(),
-          })) as ConversationMessage[];
-
-        const provider = getCurrentProvider();
-
-        let result: unknown;
-        try {
-          switch (chatMode) {
-            case "create": {
-              if (!selectedTemplateId) {
-                throw new Error("Template must be selected for create mode");
-              }
-
-              const contextPrd =
-                prdContexts.length > 0
-                  ? prdContexts[0].prd
-                  : {
-                      id: "temp-chat",
-                      title: "Chat Session",
-                      content: "",
-                      created_at: new Date().toISOString(),
-                      updated_at: new Date().toISOString(),
-                    };
-
-              const createRequest: GenerateContentRequest = {
-                prompt: userContent as string,
-                tone: "professional",
-                length: "standard",
-                existing_content: contextPrd.content,
-                conversation_history: conversationHistory,
-                provider,
-                model: settings.selectedModel,
-                template_id: selectedTemplateId,
-              };
-
-              result = await prdApi.generateContent(
-                contextPrd.id,
-                createRequest
-              );
-              break;
-            }
-
-            case "critique": {
-              if (prdContexts.length === 0) {
-                throw new Error("PRD context required for critique mode");
-              }
-
-              const critiqueRequest: CritiqueRequest = {
-                existing_content: prdContexts[0].prd.content,
-                focus_areas: ["completeness", "clarity", "structure"],
-                depth: "detailed",
-                include_suggestions: true,
-                custom_criteria: userContent as string,
-                provider,
-                model: settings.selectedModel,
-              };
-
-              result = await prdApi.critique(
-                prdContexts[0].prd.id,
-                critiqueRequest
-              );
-              break;
-            }
-
-            case "question": {
-              if (prdContexts.length === 0) {
-                throw new Error("PRD context required for question mode");
-              }
-
-              const questionRequest: QuestionRequest = {
-                question: userContent as string,
-                context:
-                  prdContexts.length > 1
-                    ? `Multiple PRDs: ${prdContexts.map((ctx: PRDContext) => ctx.prd.title).join(", ")}`
-                    : undefined,
-                conversation_history: conversationHistory,
-                provider,
-                model: settings.selectedModel,
-              };
-
-              result = await prdApi.question(
-                prdContexts[0].prd.id,
-                questionRequest
-              );
-              break;
-            }
-
-            default:
-              throw new Error(`Unknown mode: ${chatMode}`);
-          }
-
-          // Check if aborted
-          if (abortSignal?.aborted) {
-            throw new Error("Request was cancelled");
-          }
-
-          // Process the response based on mode
-          let responseContent: string;
-          if (chatMode === "critique") {
-            responseContent =
-              (result as { summary?: string }).summary ||
-              "No critique available";
-          } else if (chatMode === "question") {
-            responseContent =
-              (result as { answer?: string }).answer || "No answer provided";
-          } else {
-            // Create mode
-            const generatedContent = (
-              result as { generated_content?: string | object }
-            ).generated_content;
-            if (typeof generatedContent === "string") {
-              responseContent = generatedContent;
-            } else if (
-              generatedContent &&
-              typeof generatedContent === "object"
-            ) {
-              // Convert PRDContent object to markdown
-              const prdContent = generatedContent as {
-                title?: string;
-                summary?: string;
-                sections?: Array<{ title: string; content: string }>;
-              };
-              responseContent = `# ${prdContent.title || "Generated PRD"}\n\n`;
-              if (prdContent.summary) {
-                responseContent += `**Summary:** ${prdContent.summary}\n\n`;
-              }
-              if (prdContent.sections?.length) {
-                responseContent += prdContent.sections
-                  .map((section) => `## ${section.title}\n\n${section.content}`)
-                  .join("\n\n");
-              }
-            } else {
-              responseContent = "No content generated";
-            }
-          }
-
-          // Store pending metadata for matching later
-          const setMessageMetadata = useMessageMetadataStore.getState();
-
-          // Calculate cost (reuse logic from InteractivePRDPanel)
-          // Cost utility imported statically
-
-          if (
-            result &&
-            typeof result === "object" &&
-            "input_tokens" in result
-          ) {
-            const apiResponse = result as {
-              input_tokens?: number;
-              output_tokens?: number;
-              generation_time?: number;
-              langfuse_data?: unknown;
-            };
-            const cost = calculateCost(
-              apiResponse.input_tokens || 0,
-              apiResponse.output_tokens || 0,
-              settings.selectedModel,
-              provider
-            );
-
-            interface LangfuseLike {
-              traceId: unknown;
-              generationId: unknown;
-            }
-            const langfuseData = (():
-              | { traceId: string; generationId: string }
-              | undefined => {
-              const data = apiResponse.langfuse_data as unknown;
-              if (data && typeof data === "object") {
-                const lf = data as LangfuseLike;
-                if (
-                  typeof lf.traceId === "string" &&
-                  typeof lf.generationId === "string"
-                ) {
-                  return { traceId: lf.traceId, generationId: lf.generationId };
-                }
-              }
-              return undefined;
-            })();
-
-            setMessageMetadata.addPendingMetadata({
-              inputTokens: apiResponse.input_tokens,
-              outputTokens: apiResponse.output_tokens,
-              generationTime: apiResponse.generation_time,
-              cost,
-              provider: provider.name,
-              model: settings.selectedModel || "unknown",
-              langfuseData,
-              timestamp: new Date(),
-              responseContent: responseContent.substring(0, 100), // Store first 100 chars for matching
-            });
-          }
-
-          return {
-            content: [{ type: "text", text: responseContent }],
-          };
-        } catch (error) {
-          if (abortSignal?.aborted) {
-            throw error; // Let assistant-ui handle cancellation
-          }
-
-          const errorMessage = `I'm sorry, there was an error processing your request: ${
-            error instanceof Error ? error.message : "Unknown error"
-          }`;
-
-          return {
-            content: [{ type: "text", text: errorMessage }],
-          };
-        }
-      },
-    }),
-    [
-      chatMode,
-      selectedTemplateId,
-      prdContexts,
-      getCurrentProvider,
-      settings.selectedModel,
-    ]
-  );
-
-  // Create runtime with the chat model adapter
-  const runtime = useLocalRuntime(chatModelAdapter);
+  // Create runtime with shared hook
+  const runtime = usePrdRuntime({ chatMode, prdContexts, selectedTemplateId });
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -486,7 +225,10 @@ export function ChatPage() {
       {/* Assistant UI Thread */}
       <div className="flex-1 overflow-hidden">
         <AssistantRuntimeProvider runtime={runtime}>
-          <Thread />
+          <Thread
+            canSend={!(chatMode === "create" && !selectedTemplateId)}
+            cannotSendMessage="Select a template to get started."
+          />
         </AssistantRuntimeProvider>
       </div>
     </div>

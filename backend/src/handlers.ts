@@ -219,7 +219,6 @@ export const generatePrdContent =
                       id: templateRow.id,
                       title: templateRow.title,
                       description: templateRow.description,
-                      category: templateRow.category,
                       sections,
                       isCustom: !!templateRow.is_custom,
                       createdAt: templateRow.created_at,

@@ -15,21 +15,21 @@ export const prdKeys = {
 
 // Query hooks
 export function usePrds() {
-  return useQuery({
+  return useQuery<PRD[]>({
     queryKey: prdKeys.list(),
     queryFn: prdApi.getAll,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    select: (data) => camelcaseKeys(data as Record<string, any>),
+    select: (data) => camelcaseKeys(data as Record<string, any>) as PRD[],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 export function usePrd(id: string) {
-  return useQuery({
+  return useQuery<PRD>({
     queryKey: prdKeys.detail(id),
     queryFn: () => prdApi.getById(id),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    select: (data) => camelcaseKeys(data as Record<string, any>),
+    select: (data) => camelcaseKeys(data as Record<string, any>) as PRD,
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
