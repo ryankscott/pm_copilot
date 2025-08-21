@@ -30,11 +30,7 @@ import { useLLMStore } from "@/store/llm-store";
 // Assistant UI imports
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
 import { Thread } from "@/components/assistant-ui/thread";
-import {
-  usePrdRuntime,
-  type PRDContext,
-  type ChatMode,
-} from "@/components/assistant-ui/runtime";
+import { usePrdRuntime, type PRDContext, type ChatMode } from "@/app/runtime";
 
 import type { PRD, Template } from "@/types";
 
