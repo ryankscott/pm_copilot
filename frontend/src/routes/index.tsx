@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
   Card,
   CardDescription,
@@ -11,6 +11,22 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
+  const navigate = useNavigate();
+
+  const handleCreateDocument = () => {
+    navigate({
+      to: "/chat",
+      search: { mode: "create" },
+    });
+  };
+
+  const handleImproveDocument = () => {
+    navigate({
+      to: "/chat",
+      search: { mode: "critique" },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background w-full">
       <div className="container mx-auto px-4 py-16">
@@ -23,7 +39,10 @@ function Index() {
 
         {/* Action Cards */}
         <div className="max-w-4xl mx-auto space-y-4 mb-16">
-          <Card className="group cursor-pointer  transition-all duration-200">
+          <Card
+            className="group cursor-pointer transition-all duration-200"
+            onClick={handleCreateDocument}
+          >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -43,11 +62,14 @@ function Index() {
             </CardHeader>
           </Card>
 
-          <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200">
+          <Card
+            className="group cursor-pointer hover:shadow-lg transition-all duration-200"
+            onClick={handleImproveDocument}
+          >
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center">
                     <span className="text-xl">🔄</span>
                   </div>
                   <div>

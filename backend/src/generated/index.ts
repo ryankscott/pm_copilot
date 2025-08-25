@@ -18,11 +18,15 @@ export type { GenerateContentResponse } from './models/GenerateContentResponse';
 export type { LangfuseData } from './models/LangfuseData';
 export type { LLMModel } from './models/LLMModel';
 export { LLMProviderConfig } from './models/LLMProviderConfig';
+export type { OKRKeyResult } from './models/OKRKeyResult';
+export type { OKRObjective } from './models/OKRObjective';
+export type { OKRs } from './models/OKRs';
 export type { PRD } from './models/PRD';
 export type { PRDContent } from './models/PRDContent';
 export type { QuestionRequest } from './models/QuestionRequest';
 export type { QuestionResponse } from './models/QuestionResponse';
 export type { Template } from './models/Template';
 export type { TemplateSection } from './models/TemplateSection';
+export type { UserContext } from './models/UserContext';
 
 export { DefaultService } from './services/DefaultService';

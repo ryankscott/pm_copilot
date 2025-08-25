@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ConversationMessage } from './ConversationMessage';
 import type { LLMProviderConfig } from './LLMProviderConfig';
+import type { UserContext } from './UserContext';
 export type GenerateContentRequest = {
     /**
      * The prompt or instruction for AI content generation
@@ -37,6 +38,10 @@ export type GenerateContentRequest = {
      * Template ID to use for structured generation
      */
     template_id: string;
+    /**
+     * User context information to provide relevant AI responses
+     */
+    user_context?: UserContext;
 };
 export namespace GenerateContentRequest {
     /**

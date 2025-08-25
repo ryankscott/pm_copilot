@@ -11,10 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, EyeOff, Check, X, Settings as SettingsIcon } from "lucide-react";
+import { Eye, EyeOff, Check, X } from "lucide-react";
 import { useLLMStore } from "@/store/llm-store";
 import { useState, useEffect } from "react";
 import { providerApi } from "@/lib/api";
+import { UserContextForm } from "@/components/UserContextForm";
+import { PMCopilotIcon } from "@/components/PMCopilotLogo";
 
 const PROVIDER_INFO: Record<
   ProviderType,
@@ -387,7 +389,7 @@ export function Settings() {
   return (
     <div className="p-6 max-w-4xl mx-auto w-full">
       <div className="flex items-center gap-3 mb-6">
-        <SettingsIcon className="w-6 h-6" />
+        <PMCopilotIcon size={28} />
         <h2 className="text-2xl font-bold">Settings</h2>
       </div>
 
@@ -395,6 +397,7 @@ export function Settings() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="providers">AI Providers</TabsTrigger>
           <TabsTrigger value="models">Model Selection</TabsTrigger>
+          <TabsTrigger value="context">User Context</TabsTrigger>
         </TabsList>
 
         <TabsContent value="providers" className="space-y-6 max-4-xl">
@@ -407,6 +410,10 @@ export function Settings() {
 
         <TabsContent value="models">
           <ModelSelection />
+        </TabsContent>
+
+        <TabsContent value="context">
+          <UserContextForm />
         </TabsContent>
       </Tabs>
     </div>

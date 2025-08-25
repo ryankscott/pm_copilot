@@ -91,6 +91,7 @@ export function usePrdRuntime({
                 provider,
                 model: settings.selectedModel,
                 template_id: selectedTemplateId,
+                user_context: settings.userContext,
               };
 
               result = await prdApi.generateContent(
@@ -113,6 +114,7 @@ export function usePrdRuntime({
                 custom_criteria: userContent as string,
                 provider,
                 model: settings.selectedModel,
+                user_context: settings.userContext,
               };
 
               result = await prdApi.critique(
@@ -138,6 +140,7 @@ export function usePrdRuntime({
                 conversation_history: conversationHistory,
                 provider,
                 model: settings.selectedModel,
+                user_context: settings.userContext,
               };
 
               result = await prdApi.question(
@@ -276,6 +279,7 @@ export function usePrdRuntime({
       prdContexts,
       getCurrentProvider,
       settings.selectedModel,
+      settings.userContext,
     ]
   );
 

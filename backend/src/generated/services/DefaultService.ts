@@ -111,10 +111,10 @@ export class DefaultService {
     }
     /**
      * Generate AI content for a PRD
-     * Generate content for a specific section of a PRD or enhance existing content using AI
+     * Generate content for a specific section of a PRD or enhance existing content using AI. Returns either conversational responses during discussion or structured PRD content when generation is complete.
      * @param id The ID of the PRD to generate content for
      * @param requestBody
-     * @returns GenerateContentResponse Successfully generated content
+     * @returns GenerateContentResponse Successfully generated content - either conversational response or structured PRD
      * @throws ApiError
      */
     public static postPrdsGenerate(

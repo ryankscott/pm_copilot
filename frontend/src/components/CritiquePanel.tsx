@@ -66,6 +66,7 @@ export function CritiquePanel({ prd }: CritiquePanelProps) {
         custom_criteria: critiqueSettings.customCriteria || undefined,
         provider: getCurrentProvider(),
         model: settings.selectedModel,
+        user_context: settings.userContext,
       };
 
       const result = await prdApi.critique(prd.id, request);

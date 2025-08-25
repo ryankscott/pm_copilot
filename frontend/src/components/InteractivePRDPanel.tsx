@@ -212,6 +212,7 @@ export function InteractivePRDPanel({
         provider: getCurrentProvider(),
         model: settings.selectedModel,
         template_id: prd.templateId,
+        user_context: settings.userContext,
       };
 
       const result = await prdApi.generateContent(prd.id, request);

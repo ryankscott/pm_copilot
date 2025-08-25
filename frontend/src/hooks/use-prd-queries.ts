@@ -18,8 +18,6 @@ export function usePrds() {
   return useQuery<PRD[]>({
     queryKey: prdKeys.list(),
     queryFn: prdApi.getAll,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    select: (data) => camelcaseKeys(data as Record<string, any>) as PRD[],
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

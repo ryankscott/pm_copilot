@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { LLMProviderConfig } from './LLMProviderConfig';
+import type { UserContext } from './UserContext';
 export type CritiqueRequest = {
     /**
      * Specific areas to focus the critique on
@@ -28,6 +29,10 @@ export type CritiqueRequest = {
      * Specific model to use for critique
      */
     model?: string;
+    /**
+     * User context information to provide relevant AI responses
+     */
+    user_context?: UserContext;
 };
 export namespace CritiqueRequest {
     /**

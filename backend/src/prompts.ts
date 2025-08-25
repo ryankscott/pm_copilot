@@ -2,6 +2,7 @@ import {
   CritiqueRequest,
   GenerateContentRequest,
   QuestionRequest,
+  UserContext,
 } from "./generated";
 import { langfuse } from "./langfuse";
 
@@ -28,6 +29,83 @@ const TONE_INSTRUCTIONS_MAP = {
 } as const;
 
 /**
+ * Formats user context into a structured string for use in prompts.
+ * @param userContext The user context information.
+ * @returns A formatted string with user context or empty string if no context.
+ */
+const formatUserContext = (userContext?: UserContext): string => {
+  if (!userContext) return "";
+
+  const sections = [];
+
+  // Company context
+  if (
+    userContext.company &&
+    Object.values(userContext.company).some((v) => v)
+  ) {
+    const company = userContext.company;
+    const companyInfo = [];
+    if (company.name) companyInfo.push(`Company: ${company.name}`);
+    if (company.industry) companyInfo.push(`Industry: ${company.industry}`);
+    if (company.size) companyInfo.push(`Size: ${company.size}`);
+    if (company.business_strategy)
+      companyInfo.push(`Business Strategy: ${company.business_strategy}`);
+    if (company.product_strategy)
+      companyInfo.push(`Product Strategy: ${company.product_strategy}`);
+    if (company.okrs) companyInfo.push(`Company OKRs: ${company.okrs}`);
+
+    if (companyInfo.length > 0) {
+      sections.push(`Company Context:\n${companyInfo.join("\n")}`);
+    }
+  }
+
+  // Product context
+  if (
+    userContext.product &&
+    Object.values(userContext.product).some((v) => v)
+  ) {
+    const product = userContext.product;
+    const productInfo = [];
+    if (product.name) productInfo.push(`Product: ${product.name}`);
+    if (product.description)
+      productInfo.push(`Description: ${product.description}`);
+    if (product.current_stage)
+      productInfo.push(`Stage: ${product.current_stage}`);
+    if (product.target_market)
+      productInfo.push(`Target Market: ${product.target_market}`);
+    if (product.monetization_strategy)
+      productInfo.push(`Monetization: ${product.monetization_strategy}`);
+    if (product.competitors)
+      productInfo.push(`Competitors: ${product.competitors}`);
+
+    if (productInfo.length > 0) {
+      sections.push(`Product Context:\n${productInfo.join("\n")}`);
+    }
+  }
+
+  // Team context
+  if (userContext.team && Object.values(userContext.team).some((v) => v)) {
+    const team = userContext.team;
+    const teamInfo = [];
+    if (team.name) teamInfo.push(`Team: ${team.name}`);
+    if (team.role) teamInfo.push(`Your Role: ${team.role}`);
+    if (team.size) teamInfo.push(`Team Size: ${team.size}`);
+    if (team.structure) teamInfo.push(`Structure: ${team.structure}`);
+    if (team.responsibilities)
+      teamInfo.push(`Responsibilities: ${team.responsibilities}`);
+    if (team.okrs) teamInfo.push(`Team OKRs: ${team.okrs}`);
+
+    if (teamInfo.length > 0) {
+      sections.push(`Team Context:\n${teamInfo.join("\n")}`);
+    }
+  }
+
+  return sections.length > 0
+    ? `\n\nUser Context:\n${sections.join("\n\n")}`
+    : "";
+};
+
+/**
  * Fetches and compiles the interactive system prompt for PRD generation from Langfuse.
  * @param request The content generation request, containing tone and length preferences.
  * @returns The compiled system prompt string.
@@ -43,10 +121,14 @@ export const getInteractiveSystemPrompt = async (
       "interactive-prd-system-prompt-template"
     );
 
+    // Format user context for inclusion in the prompt
+    const userContextString = formatUserContext(request.user_context);
+
     // Compile the prompt with dynamic variables
     const compiledPrompt = prompt.compile({
       length: length,
       toneInstructions: TONE_INSTRUCTIONS_MAP[tone] || "", // Fallback for safety
+      userContext: userContextString,
     });
 
     // The compile method for text prompts returns a string
@@ -81,12 +163,16 @@ export const getCritiqueSystemPrompt = async (
     ? "Include specific examples and suggestions for improvement in each area."
     : "Focus on identifying issues without providing detailed suggestions.";
 
+  // Format user context for inclusion in the prompt
+  const userContextString = formatUserContext(request.user_context);
+
   try {
     const prompt = await langfuse.getPrompt(
       "prd-critique-system-prompt-template"
     );
     const compiledPrompt = prompt.compile({
       suggestionInstructions,
+      userContext: userContextString,
     });
     return compiledPrompt as string;
   } catch (error) {
@@ -135,6 +221,9 @@ export const getCritiqueUserPrompt = async (
 export const getQuestionSystemPrompt = async (
   request: QuestionRequest
 ): Promise<string> => {
+  // Format user context for inclusion in the prompt
+  const userContextString = formatUserContext(request.user_context);
+
   try {
     // Fetch the raw prompt template from Langfuse by its unique name
     const prompt = await langfuse.getPrompt(
@@ -144,6 +233,7 @@ export const getQuestionSystemPrompt = async (
     // Compile the prompt with dynamic variables
     const compiledPrompt = prompt.compile({
       context: request.context || "",
+      userContext: userContextString,
     });
 
     // The compile method for text prompts returns a string
@@ -164,7 +254,9 @@ When answering questions about a PRD:
 5. Be concise but comprehensive in your responses
 6. If the question requires clarification, ask follow-up questions
 
-${request.context ? `Additional context: ${request.context}` : ""}
+${
+  request.context ? `Additional context: ${request.context}` : ""
+}${userContextString}
 
 Always maintain a professional tone and focus on being helpful and accurate.`;
   }

@@ -1,3 +1,10 @@
+// Export generated types
+export { type OKRKeyResult } from "./OKRKeyResult";
+export { type OKRObjective } from "./OKRObjective";
+export { type OKRs } from "./OKRs";
+import type { UserContext } from "./UserContext";
+// UserContext is imported locally to avoid circular dependencies
+
 export interface PRD {
   id: string;
   title: string;
@@ -79,6 +86,7 @@ export interface GenerateContentRequest {
   provider?: LLMProviderConfig;
   model?: string;
   template_id: string;
+  user_context?: UserContext;
 }
 
 export interface GenerateContentResponse {
@@ -131,6 +139,7 @@ export interface LLMSettings {
     maxTokens: number;
     topP: number;
   };
+  userContext: UserContext;
 }
 
 // Legacy interface for backwards compatibility
@@ -191,6 +200,7 @@ export interface CritiqueRequest {
   custom_criteria?: string;
   provider?: LLMProviderConfig;
   model?: string;
+  user_context?: UserContext;
 }
 
 export interface LangfuseData {
@@ -205,6 +215,7 @@ export interface QuestionRequest {
   conversation_history?: ConversationMessage[];
   provider?: LLMProviderConfig;
   model?: string;
+  user_context?: UserContext;
 }
 
 export interface QuestionResponse {

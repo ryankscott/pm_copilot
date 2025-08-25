@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ConversationMessage } from './ConversationMessage';
 import type { LLMProviderConfig } from './LLMProviderConfig';
+import type { UserContext } from './UserContext';
 export type QuestionRequest = {
     /**
      * The question to ask about the PRD
@@ -25,5 +26,9 @@ export type QuestionRequest = {
      * Specific model to use for answering
      */
     model?: string;
+    /**
+     * User context information to provide relevant AI responses
+     */
+    user_context?: UserContext;
 };
 

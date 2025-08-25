@@ -6,6 +6,7 @@ import type {
   ProviderType,
   LLMModel,
 } from "@/types";
+import type { UserContext } from "@/types/UserContext";
 import { providerApi } from "@/lib/api";
 
 // Default model configurations for each provider
@@ -117,6 +118,33 @@ const createDefaultProviderConfig = (
   lastTested: undefined,
 });
 
+const DEFAULT_USER_CONTEXT: UserContext = {
+  company: {
+    name: "",
+    industry: "",
+    business_strategy: "",
+    product_strategy: "",
+    okrs: { objectives: [] },
+    size: "",
+  },
+  product: {
+    name: "",
+    description: "",
+    target_market: "",
+    monetization_strategy: "",
+    competitors: "",
+    current_stage: "",
+  },
+  team: {
+    name: "",
+    role: "",
+    responsibilities: "",
+    okrs: { objectives: [] },
+    size: "",
+    structure: "",
+  },
+};
+
 const DEFAULT_SETTINGS: LLMSettings = {
   selectedProvider: "ollama",
   selectedModel: "llama3.2:latest",
@@ -131,6 +159,7 @@ const DEFAULT_SETTINGS: LLMSettings = {
     maxTokens: 1000,
     topP: 1.0,
   },
+  userContext: DEFAULT_USER_CONTEXT,
 };
 
 interface LLMStore {
@@ -157,10 +186,18 @@ interface LLMStore {
     settings: Partial<LLMSettings["defaultSettings"]>
   ) => void;
 
+  // User context management
+  updateUserContext: (context: Partial<UserContext>) => void;
+  updateCompanyContext: (company: Partial<UserContext["company"]>) => void;
+  updateProductContext: (product: Partial<UserContext["product"]>) => void;
+  updateTeamContext: (team: Partial<UserContext["team"]>) => void;
+  clearUserContext: () => void;
+
   // Utility functions
   getCurrentProvider: () => LLMProviderConfig;
   getCurrentModel: () => LLMModel | undefined;
   isProviderConfigured: (type: ProviderType) => boolean;
+  getUserContext: () => UserContext;
 
   // Ollama-specific functions
   fetchOllamaModels: (baseURL?: string) => Promise<void>;
@@ -189,14 +226,14 @@ export const useLLMStore = create<LLMStore>()(
         set((state) => {
           const provider = state.settings.providers[type];
           const defaultModel = provider.models[0]?.id || "";
-          
+
           // If switching to Ollama, trigger model fetching
           if (type === "ollama") {
             const baseURL = provider.baseURL || "http://localhost:11434";
             // Fetch models asynchronously without blocking the state update
             get().fetchOllamaModels(baseURL);
           }
-          
+
           return {
             settings: {
               ...state.settings,
@@ -285,6 +322,70 @@ export const useLLMStore = create<LLMStore>()(
           },
         })),
 
+      updateUserContext: (context) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            userContext: {
+              ...(state.settings.userContext || DEFAULT_USER_CONTEXT),
+              ...context,
+            },
+          },
+        })),
+
+      updateCompanyContext: (company) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            userContext: {
+              ...(state.settings.userContext || DEFAULT_USER_CONTEXT),
+              company: {
+                ...(state.settings.userContext?.company ||
+                  DEFAULT_USER_CONTEXT.company),
+                ...company,
+              },
+            },
+          },
+        })),
+
+      updateProductContext: (product) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            userContext: {
+              ...(state.settings.userContext || DEFAULT_USER_CONTEXT),
+              product: {
+                ...(state.settings.userContext?.product ||
+                  DEFAULT_USER_CONTEXT.product),
+                ...product,
+              },
+            },
+          },
+        })),
+
+      updateTeamContext: (team) =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            userContext: {
+              ...(state.settings.userContext || DEFAULT_USER_CONTEXT),
+              team: {
+                ...(state.settings.userContext?.team ||
+                  DEFAULT_USER_CONTEXT.team),
+                ...team,
+              },
+            },
+          },
+        })),
+
+      clearUserContext: () =>
+        set((state) => ({
+          settings: {
+            ...state.settings,
+            userContext: DEFAULT_USER_CONTEXT,
+          },
+        })),
+
       getCurrentProvider: () => {
         const state = get();
         return state.settings.providers[state.settings.selectedProvider];
@@ -303,17 +404,24 @@ export const useLLMStore = create<LLMStore>()(
         return state.settings.providers[type].isConfigured;
       },
 
+      getUserContext: () => {
+        const state = get();
+        return state.settings.userContext || DEFAULT_USER_CONTEXT;
+      },
+
       fetchOllamaModels: async (baseURL?: string) => {
         try {
           const models = await providerApi.getOllamaModels(baseURL);
           set((state) => {
             const currentSelectedModel = state.settings.selectedModel;
-            const isCurrentModelAvailable = models.some(model => model.id === currentSelectedModel);
-            
+            const isCurrentModelAvailable = models.some(
+              (model) => model.id === currentSelectedModel
+            );
+
             // If the currently selected model is not available in the new models,
             // select the first available model
-            const newSelectedModel = isCurrentModelAvailable 
-              ? currentSelectedModel 
+            const newSelectedModel = isCurrentModelAvailable
+              ? currentSelectedModel
               : models[0]?.id || "";
 
             return {
@@ -327,9 +435,10 @@ export const useLLMStore = create<LLMStore>()(
                   },
                 },
                 // Update selected model if the current provider is Ollama
-                selectedModel: state.settings.selectedProvider === "ollama" 
-                  ? newSelectedModel 
-                  : state.settings.selectedModel,
+                selectedModel:
+                  state.settings.selectedProvider === "ollama"
+                    ? newSelectedModel
+                    : state.settings.selectedModel,
               },
             };
           });

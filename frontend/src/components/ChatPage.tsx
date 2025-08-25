@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Alert, AlertDescription } from "./ui/alert";
 import {
   Bot,
   X,
@@ -8,6 +9,8 @@ import {
   MessageSquare,
   Wand2,
   Paperclip,
+  AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Select,
@@ -36,13 +39,17 @@ import type { PRD, Template } from "@/types";
 
 // ChatMode and PRDContext are now imported from runtime
 
-export function ChatPage() {
+interface ChatPageProps {
+  initialMode?: ChatMode;
+}
+
+export function ChatPage({ initialMode }: ChatPageProps) {
   const { data: prds } = usePrds();
   const { data: templates } = useTemplates();
   useLLMStore(); // ensure provider settings are initialized elsewhere if needed
 
   // Chat state
-  const [chatMode, setChatMode] = useState<ChatMode>("create");
+  const [chatMode, setChatMode] = useState<ChatMode>(initialMode || "create");
   const [prdContexts, setPrdContexts] = useState<PRDContext[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
 
@@ -148,42 +155,61 @@ export function ChatPage() {
               {/* PRD Context Selector for critique/question modes */}
               {chatMode !== "create" && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Paperclip className="w-4 h-4 mr-2" />
+                  <DropdownMenuTrigger>
+                    <Button
+                      onClick={(e) => e.preventDefault()}
+                      variant="outline"
+                      size="sm"
+                      disabled={prdContexts.length > 0}
+                    >
                       Add PRD
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    {prds?.map((prd: PRD) => (
+                    {prds && prds.length > 0 ? (
+                      prds.map((prd: PRD) => (
+                        <DropdownMenuItem
+                          key={prd.id}
+                          onClick={() => addPrdContext(prd.id)}
+                          disabled={prdContexts.some(
+                            (ctx: PRDContext) => ctx.prd.id === prd.id
+                          )}
+                          className="flex items-center gap-2"
+                        >
+                          <FileText className="w-4 h-4" />
+                          {prd.title}
+                        </DropdownMenuItem>
+                      ))
+                    ) : (
                       <DropdownMenuItem
-                        key={prd.id}
-                        onClick={() => addPrdContext(prd.id)}
-                        disabled={prdContexts.some(
-                          (ctx: PRDContext) => ctx.prd.id === prd.id
-                        )}
-                        className="flex items-center gap-2"
+                        disabled
+                        className="text-muted-foreground"
                       >
-                        <FileText className="w-4 h-4" />
-                        {prd.title}
+                        No PRDs available
                       </DropdownMenuItem>
-                    ))}
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
             </div>
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pt-2">
               {chatMode === "create" && !selectedTemplateId && (
-                <p className="text-red-500 text-sm">
-                  Select a template to get started.
-                </p>
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    Select a template to get started.
+                  </AlertDescription>
+                </Alert>
               )}
               {(chatMode === "critique" || chatMode === "question") &&
                 prdContexts.length === 0 && (
-                  <p className="text-amber-600 text-sm">
-                    Add a PRD as context to get started.
-                  </p>
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Add a PRD to get started.
+                    </AlertDescription>
+                  </Alert>
                 )}
             </div>
           </div>
@@ -198,7 +224,7 @@ export function ChatPage() {
                 {prdContexts.map((ctx: PRDContext) => (
                   <Badge
                     key={ctx.prd.id}
-                    className="flex rounded-none items-center gap-1 p-0 m-0 pl-2"
+                    className="flex rounded-none items-center gap-1 p-0 m-0 pl-2 font-thin"
                   >
                     <FileText className="w-3 h-3" />
                     {ctx.prd.title}

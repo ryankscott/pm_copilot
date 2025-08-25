@@ -442,6 +442,9 @@ components:
           type: string
           description: Template ID to use for structured generation
           example: "feature-prd-template"
+        user_context:
+          $ref: "#/components/schemas/UserContext"
+          description: User context information to provide relevant AI responses
     CritiqueRequest:
       type: object
       properties:
@@ -482,6 +485,9 @@ components:
           type: string
           description: Specific model to use for critique
           example: "gpt-4o"
+        user_context:
+          $ref: "#/components/schemas/UserContext"
+          description: User context information to provide relevant AI responses
     QuestionRequest:
       type: object
       required:
@@ -507,6 +513,9 @@ components:
           type: string
           description: Specific model to use for answering
           example: "gpt-4o"
+        user_context:
+          $ref: "#/components/schemas/UserContext"
+          description: User context information to provide relevant AI responses
     ConversationMessage:
       type: object
       required:
@@ -837,3 +846,125 @@ components:
         order:
           type: integer
           description: Display order of the section
+    OKRKeyResult:
+      type: object
+      description: A key result that measures progress toward an objective
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the key result
+        description:
+          type: string
+          description: Description of what this key result measures
+        target:
+          type: string
+          description: Target value or goal for this key result
+        current:
+          type: string
+          description: Current value or progress for this key result
+      required:
+        - id
+        - description
+
+    OKRObjective:
+      type: object
+      description: An objective with associated key results
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the objective
+        title:
+          type: string
+          description: Title of the objective
+        description:
+          type: string
+          description: Detailed description of the objective
+        keyResults:
+          type: array
+          items:
+            $ref: "#/components/schemas/OKRKeyResult"
+          description: Key results that measure progress toward this objective
+      required:
+        - id
+        - title
+        - keyResults
+
+    OKRs:
+      type: object
+      description: Collection of objectives and key results
+      properties:
+        objectives:
+          type: array
+          items:
+            $ref: "#/components/schemas/OKRObjective"
+          description: List of objectives with their key results
+      required:
+        - objectives
+
+    UserContext:
+      type: object
+      description: Context information about the user, company, product, and team
+      properties:
+        company:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Company name
+            industry:
+              type: string
+              description: Industry or sector the company operates in
+            business_strategy:
+              type: string
+              description: Overall business strategy, mission, and vision
+            product_strategy:
+              type: string
+              description: Company's product strategy and approach
+            okrs:
+              $ref: "#/components/schemas/OKRs"
+              description: Current company objectives and key results
+            size:
+              type: string
+              description: Company size or stage
+        product:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Product name
+            description:
+              type: string
+              description: Product description and value proposition
+            target_market:
+              type: string
+              description: Target users, market segments, and customer personas
+            monetization_strategy:
+              type: string
+              description: How the product generates revenue
+            competitors:
+              type: string
+              description: Main competitors and competitive landscape
+            current_stage:
+              type: string
+              description: Current development stage (MVP, Growth, Mature, etc.)
+        team:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Team name
+            role:
+              type: string
+              description: User's role in the team
+            responsibilities:
+              type: string
+              description: Team responsibilities and ownership
+            okrs:
+              $ref: "#/components/schemas/OKRs"
+              description: Team's current objectives and key results
+            size:
+              type: string
+              description: Team size and composition
+            structure:
+              type: string
+              description: Team structure and organization
